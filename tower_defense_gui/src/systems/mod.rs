@@ -46,19 +46,26 @@ pub fn mouse_input(
                 };
 
                 if map.place_tower(&pos) {
-                    new_target.send(NewTarget {
-                        pos: IVec2 { x: 9, y: 9 },
-                    });
+                    if map
+                        .find_path(&IVec2 { x: 0, y: 0 }, &IVec2 { x: 9, y: 9 })
+                        .is_some()
+                    {
+                        new_target.send(NewTarget {
+                            pos: IVec2 { x: 9, y: 9 },
+                        });
 
-                    commands.spawn((
-                        Mesh2d(tower_assets.mesh.clone()),
-                        MeshMaterial2d(tower_assets.material.clone()),
-                        Transform::from_xyz(
-                            pos.x as f32 * 30.0 - 135.0,
-                            pos.y as f32 * 30.0 - 135.0,
-                            50.0,
-                        ),
-                    ));
+                        commands.spawn((
+                            Mesh2d(tower_assets.mesh.clone()),
+                            MeshMaterial2d(tower_assets.material.clone()),
+                            Transform::from_xyz(
+                                pos.x as f32 * 30.0 - 135.0,
+                                pos.y as f32 * 30.0 - 135.0,
+                                50.0,
+                            ),
+                        ));
+                    } else {
+                        map.remove_tower(&pos)
+                    }
                 }
             }
         } else {

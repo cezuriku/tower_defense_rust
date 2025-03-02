@@ -28,6 +28,11 @@ impl Map {
         self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
         true
     }
+
+    pub fn remove_tower(&mut self, pos: &IVec2) {
+        self.cells[pos.x as usize][pos.y as usize] = 0;
+    }
+
     fn distance(start: &IVec2, end: &IVec2) -> u32 {
         start.x.abs_diff(end.x).pow(2) + start.y.abs_diff(end.y).pow(2)
     }
