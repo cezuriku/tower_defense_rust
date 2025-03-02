@@ -1,0 +1,8 @@
+[package]
+name = "tower_defense"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.15", features = ["dynamic_linking"] }
+tower_defense_plugin = { version = "0.1.0", path = "../tower_defense_plugin" }

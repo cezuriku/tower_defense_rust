@@ -1,0 +1,3 @@
+[workspace]
+members = ["tower_defense", "tower_defense_plugin"]
+resolver = "2"
