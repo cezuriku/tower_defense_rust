@@ -41,7 +41,25 @@ impl Map {
     }
 
     fn successors(&self, pos: &IVec2) -> Vec<(IVec2, u32)> {
-        vec![
+        let diag = vec![
+            IVec2 { x: 1, y: 1 },
+            IVec2 { x: -1, y: 1 },
+            IVec2 { x: 1, y: -1 },
+            IVec2 { x: -1, y: -1 },
+        ]
+        .into_iter()
+        .filter(|p| {
+            self.is_valid(&IVec2 {
+                x: p.x + pos.x,
+                y: pos.y,
+            }) && self.is_valid(&IVec2 {
+                x: pos.x,
+                y: p.y + pos.y,
+            }) && self.is_valid(&(p + pos))
+        })
+        .map(|p| (p + pos, 75));
+
+        let straight = vec![
             IVec2 {
                 x: pos.x + 1,
                 y: pos.y,
@@ -61,8 +79,9 @@ impl Map {
         ]
         .into_iter()
         .filter(|p| self.is_valid(p))
-        .map(|p| (p, 1))
-        .collect()
+        .map(|p| (p, 50));
+
+        straight.chain(diag).collect()
     }
 
     pub fn find_path(&self, start: &IVec2, end: &IVec2) -> Option<(Vec<IVec2>, u32)> {
