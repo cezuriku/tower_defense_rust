@@ -1,5 +1,12 @@
 use bevy::prelude::*;
 
+#[derive(Bundle)]
+pub struct Creep {
+    pub sprite: Sprite,
+    pub transform: Transform,
+    pub velocity: Velocity,
+}
+
 #[derive(Component)]
 pub struct Position {
     pub x: f32,
@@ -8,8 +15,7 @@ pub struct Position {
 
 #[derive(Component)]
 pub struct Velocity {
-    pub dx: f32,
-    pub dy: f32,
+    pub direction: Vec2,
 }
 
 #[derive(Component)]
@@ -81,9 +87,3 @@ pub struct GameStart {
     resources: Resources,
     score: Score,
 }
-
-#[derive(Component)]
-pub struct Person;
-
-#[derive(Component)]
-pub struct Name(pub String);

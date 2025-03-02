@@ -18,8 +18,8 @@ pub struct TowerDefensePlugin;
 impl Plugin for TowerDefensePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)));
-        app.add_systems(Startup, add_people);
-        app.add_systems(Update, greet_people);
-        app.insert_resource(ClearColor(Color::srgb(0.1, 0.3, 0.7)));
+        app.add_systems(Startup, setup);
+        app.add_systems(Update, move_creeps);
+        app.insert_resource(ClearColor(Color::BLACK));
     }
 }
