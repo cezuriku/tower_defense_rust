@@ -10,7 +10,7 @@ use resources::GreetTimer;
 
 pub mod components;
 // pub mod events;
-mod resources;
+pub mod resources;
 mod systems;
 
 pub struct TowerDefensePlugin;

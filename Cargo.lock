@@ -3886,6 +3886,7 @@ name = "tower_defense_gui"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "tower_defense_plugin",
 ]
 
 [[package]]

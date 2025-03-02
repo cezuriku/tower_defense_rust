@@ -1,6 +1,6 @@
-//use crate::systems::*;
+use crate::resources::*;
 use crate::systems::*;
-use bevy::{app::*, color::Color, render::camera::ClearColor};
+use bevy::prelude::*;
 
 pub mod components;
 // pub mod events;
@@ -12,6 +12,8 @@ pub struct TowerDefenseGui;
 impl Plugin for TowerDefenseGui {
     fn build(&self, app: &mut App) {
         app.insert_resource(ClearColor(Color::BLACK))
-            .add_systems(Startup, setup);
+            .add_systems(Startup, setup)
+            .add_event::<NewTarget>()
+            .add_systems(Update, (mouse_input, update_path));
     }
 }

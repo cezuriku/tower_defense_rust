@@ -15,7 +15,7 @@ pub struct Map {
 
 impl Map {
     /// Create a new grid with default values
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
         }
@@ -29,7 +29,7 @@ impl Map {
         true
     }
     fn distance(start: &IVec2, end: &IVec2) -> u32 {
-        start.x.abs_diff(end.x) + start.y.abs_diff(end.y)
+        start.x.abs_diff(end.x).pow(2) + start.y.abs_diff(end.y).pow(2)
     }
 
     fn is_valid(&self, pos: &IVec2) -> bool {

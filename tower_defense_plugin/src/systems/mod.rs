@@ -1,16 +1,10 @@
-use bevy::{
-    ecs::system::*,
-    time::Time,
-    transform::components::Transform,
-};
+use bevy::{ecs::system::*, time::Time, transform::components::Transform};
 
 use crate::components::*;
 use crate::resources::*;
 
 pub fn setup(mut commands: Commands) {
-    commands.insert_resource(Map {
-        cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
-    });
+    commands.insert_resource(Map::new());
     // commands.spawn(Creep {
     // sprite: Sprite {
     // anchor: bevy::sprite::Anchor::TopLeft,
