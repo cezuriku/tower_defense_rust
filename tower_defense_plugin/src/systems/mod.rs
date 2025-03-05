@@ -4,7 +4,6 @@ use crate::components::*;
 use crate::resources::*;
 
 pub fn setup(mut commands: Commands) {
-    commands.insert_resource(Map::new());
     // commands.spawn(Creep {
     // sprite: Sprite {
     // anchor: bevy::sprite::Anchor::TopLeft,

@@ -6,7 +6,7 @@ use bevy::{
     render::camera::ClearColor,
     time::{Timer, TimerMode},
 };
-use resources::GreetTimer;
+use resources::{GreetTimer, Map};
 
 pub mod components;
 // pub mod events;
@@ -18,6 +18,7 @@ pub struct TowerDefensePlugin;
 impl Plugin for TowerDefensePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)));
+        app.insert_resource(Map::new());
         app.add_systems(Startup, setup);
         app.add_systems(Update, move_creeps);
         app.insert_resource(ClearColor(Color::BLACK));

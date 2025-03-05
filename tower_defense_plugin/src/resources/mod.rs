@@ -11,6 +11,8 @@ pub struct GreetTimer(pub Timer);
 #[derive(Resource)]
 pub struct Map {
     pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
+    pub start: IVec2,
+    pub end: IVec2,
 }
 
 impl Map {
@@ -18,6 +20,8 @@ impl Map {
     pub fn new() -> Self {
         Self {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
+            start: ivec2(0, 0),
+            end: ivec2(9, 9),
         }
     }
 

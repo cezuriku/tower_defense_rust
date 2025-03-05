@@ -8,21 +8,54 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut new_target: EventWriter<UpdatePath>,
+    map: Res<Map>,
 ) {
     commands.insert_resource(TowerAssets {
         mesh: meshes.add(Rectangle::new(30.0, 30.0)),
         material: materials.add(Color::BLACK),
     });
-    commands.insert_resource(PathAssets {
+
+    let path_assets = PathAssets {
         mesh: meshes.add(Rectangle::new(10.0, 10.0)),
         material: materials.add(Color::srgb_u8(218, 165, 35)),
-    });
+        start_mesh: meshes.add(Rectangle::new(25.0, 25.0)),
+        start_material: materials.add(Color::srgb_u8(0, 165, 0)),
+        end_mesh: meshes.add(Rectangle::new(25.0, 25.0)),
+        end_material: materials.add(Color::srgb_u8(165, 0, 0)),
+    };
+
+    // Draw the first tile
+    commands.spawn((
+        Mesh2d(path_assets.start_mesh.clone()),
+        MeshMaterial2d(path_assets.start_material.clone()),
+        Transform::from_xyz(
+            map.start.x as f32 * 30.0 - 135.0,
+            map.start.y as f32 * 30.0 - 135.0,
+            100.0,
+        ),
+    ));
+
+    // Draw the last tile
+    commands.spawn((
+        Mesh2d(path_assets.end_mesh.clone()),
+        MeshMaterial2d(path_assets.end_material.clone()),
+        Transform::from_xyz(
+            map.end.x as f32 * 30.0 - 135.0,
+            map.end.y as f32 * 30.0 - 135.0,
+            100.0,
+        ),
+    ));
+
+    commands.insert_resource(path_assets);
     commands.spawn((Camera2d, MainCamera));
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(300.0, 300.0))),
         MeshMaterial2d(materials.add(Color::srgb_u8(85, 20, 10))),
         Transform::from_xyz(0.0, 0.0, 10.0),
     ));
+
+    new_target.send(UpdatePath {});
 }
 
 pub fn mouse_input(
@@ -30,7 +63,7 @@ pub fn mouse_input(
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut commands: Commands,
-    mut new_target: EventWriter<NewTarget>,
+    mut new_target: EventWriter<UpdatePath>,
     mut map: ResMut<Map>,
     tower_assets: Res<TowerAssets>,
 ) {
@@ -50,9 +83,7 @@ pub fn mouse_input(
                         .find_path(&IVec2 { x: 0, y: 0 }, &IVec2 { x: 9, y: 9 })
                         .is_some()
                     {
-                        new_target.send(NewTarget {
-                            pos: IVec2 { x: 9, y: 9 },
-                        });
+                        new_target.send(UpdatePath {});
 
                         commands.spawn((
                             Mesh2d(tower_assets.mesh.clone()),
@@ -74,20 +105,23 @@ pub fn mouse_input(
     }
 }
 
+pub fn draw_start_and_end(path_assets: Res<PathAssets>, mut commands: Commands, map: Res<Map>) {}
+
 pub fn update_path(
     path_assets: Res<PathAssets>,
     mut commands: Commands,
-    mut target: EventReader<NewTarget>,
+    mut target: EventReader<UpdatePath>,
     map: Res<Map>,
     q_path: Query<Entity, With<Path>>,
 ) {
-    for ev in target.read() {
+    for _ in target.read() {
         q_path.iter().for_each(|e| commands.entity(e).despawn());
 
-        match map.find_path(&IVec2 { x: 0, y: 0 }, &ev.pos) {
+        match map.find_path(&map.start, &map.end) {
             Some(path) => {
                 println!("length: {}", path.1);
-                for pos in path.0 {
+                // Show the whole path except first and last point
+                for pos in &path.0[1..path.0.len() - 1] {
                     commands.spawn((
                         Mesh2d(path_assets.mesh.clone()),
                         MeshMaterial2d(path_assets.material.clone()),
