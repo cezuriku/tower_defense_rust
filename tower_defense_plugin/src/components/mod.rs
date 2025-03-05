@@ -2,8 +2,7 @@ use bevy::prelude::*;
 
 #[derive(Bundle)]
 pub struct Creep {
-    pub sprite: Sprite,
-    pub transform: Transform,
+    pub path: MovementPath,
     pub velocity: Velocity,
 }
 

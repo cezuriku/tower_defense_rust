@@ -63,7 +63,7 @@ pub fn mouse_input(
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut commands: Commands,
-    mut new_target: EventWriter<UpdatePath>,
+    mut path_updater: EventWriter<UpdatePath>,
     mut map: ResMut<Map>,
     tower_assets: Res<TowerAssets>,
 ) {
@@ -79,11 +79,9 @@ pub fn mouse_input(
                 };
 
                 if map.place_tower(&pos) {
-                    if map
-                        .find_path(&IVec2 { x: 0, y: 0 }, &IVec2 { x: 9, y: 9 })
-                        .is_some()
-                    {
-                        new_target.send(UpdatePath {});
+                    map.recompute_path();
+                    if map.path.is_some() {
+                        path_updater.send(UpdatePath {});
 
                         commands.spawn((
                             Mesh2d(tower_assets.mesh.clone()),
@@ -105,19 +103,17 @@ pub fn mouse_input(
     }
 }
 
-pub fn draw_start_and_end(path_assets: Res<PathAssets>, mut commands: Commands, map: Res<Map>) {}
-
 pub fn update_path(
     path_assets: Res<PathAssets>,
     mut commands: Commands,
     mut target: EventReader<UpdatePath>,
-    map: Res<Map>,
+    mut map: ResMut<Map>,
     q_path: Query<Entity, With<Path>>,
 ) {
     for _ in target.read() {
         q_path.iter().for_each(|e| commands.entity(e).despawn());
-
-        match map.find_path(&map.start, &map.end) {
+        map.recompute_path();
+        match &map.path {
             Some(path) => {
                 println!("length: {}", path.1);
                 // Show the whole path except first and last point

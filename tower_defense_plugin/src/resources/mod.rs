@@ -13,6 +13,7 @@ pub struct Map {
     pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
     pub start: IVec2,
     pub end: IVec2,
+    pub path: Option<(Vec<IVec2>, u32)>,
 }
 
 impl Map {
@@ -22,6 +23,7 @@ impl Map {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
             start: ivec2(0, 0),
             end: ivec2(9, 9),
+            path: None,
         }
     }
 
@@ -93,12 +95,12 @@ impl Map {
         straight.chain(diag).collect()
     }
 
-    pub fn find_path(&self, start: &IVec2, end: &IVec2) -> Option<(Vec<IVec2>, u32)> {
-        astar(
-            start,
+    pub fn recompute_path(&mut self) {
+        self.path = astar(
+            &self.start,
             |p| self.successors(p),
-            |p| Self::distance(p, end),
-            |p| *p == *end,
+            |p| Self::distance(p, &self.end),
+            |p| *p == self.end,
         )
     }
 }
@@ -122,14 +124,15 @@ mod tests {
     */
     #[test]
     fn easy_pathfinding() {
-        let mut map = Map::new();
+        let mut map = Map {
+            start: ivec2(0, 0),
+            end: ivec2(0, 2),
+            ..Map::default()
+        };
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
-        let result = map.find_path(
-            &IVec2 { x: 0, y: 0 }, // This is the start (s in the example)
-            &IVec2 { x: 0, y: 2 }, // This is the end (e in the example)
-        );
+        map.recompute_path();
         assert_eq!(
-            result,
+            map.path,
             Some((
                 vec!(
                     IVec2 { x: 0, y: 0 }, // start
@@ -141,18 +144,18 @@ mod tests {
                 4
             )),
         );
-        assert!(result.is_some())
     }
 
     #[test]
     fn impossible_pathfinding() {
-        let mut map = Map::new();
+        let mut map = Map {
+            start: ivec2(0, 0),
+            end: ivec2(2, 2),
+            ..Map::new()
+        };
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
         map.place_tower(&IVec2 { x: 1, y: 0 }); // This is the tower (x in the example)
-        let result = map.find_path(
-            &IVec2 { x: 0, y: 0 }, // This is the start (s in the example)
-            &IVec2 { x: 2, y: 2 }, // This is the end (e in the example)
-        );
-        assert_eq!(result, None);
+        map.recompute_path();
+        assert_eq!(map.path, None);
     }
 }
