@@ -2,19 +2,16 @@ use bevy::prelude::*;
 
 #[derive(Bundle)]
 pub struct Creep {
-    pub path: MovementPath,
-    pub velocity: Velocity,
+    pub sprite: Sprite, // Todo remove sprite from plugin (should be gui)
+    pub moving_entity: MovingEntity,
+    pub transform: Transform,
 }
 
 #[derive(Component)]
-pub struct Position {
-    pub x: f32,
-    pub y: f32,
-}
-
-#[derive(Component)]
-pub struct Velocity {
-    pub direction: Vec2,
+pub struct MovingEntity {
+    pub waypoints: Vec<Vec2>,
+    pub speed: f32,
+    pub pos: Vec2,
 }
 
 #[derive(Component)]
@@ -37,11 +34,6 @@ pub struct AttackRange {
 pub struct AttackCooldown {
     pub cooldown_time: f32,
     pub time_since_last_attack: f32,
-}
-
-#[derive(Component)]
-pub struct MovementPath {
-    pub waypoints: Vec<Vec2>, // Vector of 2D waypoints
 }
 
 #[derive(Component)]

@@ -14,6 +14,10 @@ impl Plugin for TowerDefenseGui {
         app.insert_resource(ClearColor(Color::BLACK))
             .add_systems(Startup, setup)
             .add_event::<UpdatePath>()
-            .add_systems(Update, (mouse_input, update_path));
+            .add_systems(
+                Update,
+                (mouse_input, update_path, move_creeps, reset_creeps
+                ),
+            );
     }
 }

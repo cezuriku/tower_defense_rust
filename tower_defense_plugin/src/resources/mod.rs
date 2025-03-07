@@ -13,7 +13,7 @@ pub struct Map {
     pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
     pub start: IVec2,
     pub end: IVec2,
-    pub path: Option<(Vec<IVec2>, u32)>,
+    pub path: Vec<IVec2>,
 }
 
 impl Map {
@@ -23,7 +23,7 @@ impl Map {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
             start: ivec2(0, 0),
             end: ivec2(9, 9),
-            path: None,
+            path: vec![],
         }
     }
 
@@ -96,12 +96,16 @@ impl Map {
     }
 
     pub fn recompute_path(&mut self) {
-        self.path = astar(
+        if let Some((path, _)) = astar(
             &self.start,
             |p| self.successors(p),
             |p| Self::distance(p, &self.end),
             |p| *p == self.end,
-        )
+        ) {
+            self.path = path
+        } else {
+            self.path = vec![]
+        }
     }
 }
 
@@ -133,16 +137,13 @@ mod tests {
         map.recompute_path();
         assert_eq!(
             map.path,
-            Some((
-                vec!(
-                    IVec2 { x: 0, y: 0 }, // start
-                    IVec2 { x: 1, y: 0 },
-                    IVec2 { x: 1, y: 1 },
-                    IVec2 { x: 1, y: 2 },
-                    IVec2 { x: 0, y: 2 }, // end
-                ),
-                4
-            )),
+            vec!(
+                IVec2 { x: 0, y: 0 }, // start
+                IVec2 { x: 1, y: 0 },
+                IVec2 { x: 1, y: 1 },
+                IVec2 { x: 1, y: 2 },
+                IVec2 { x: 0, y: 2 }, // end
+            ),
         );
     }
 
@@ -156,6 +157,6 @@ mod tests {
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
         map.place_tower(&IVec2 { x: 1, y: 0 }); // This is the tower (x in the example)
         map.recompute_path();
-        assert_eq!(map.path, None);
+        assert_eq!(map.path, vec![]);
     }
 }
