@@ -16,9 +16,9 @@ pub struct Map {
     pub path: Vec<IVec2>,
 }
 
-impl Map {
+impl Default for Map {
     /// Create a new grid with default values
-    pub fn new() -> Self {
+    fn default() -> Self {
         Self {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
             start: ivec2(0, 0),
@@ -26,7 +26,9 @@ impl Map {
             path: vec![],
         }
     }
+}
 
+impl Map {
     pub fn place_tower(&mut self, pos: &IVec2) -> bool {
         if !self.is_valid(pos) {
             return false;
@@ -115,7 +117,7 @@ mod tests {
 
     #[test]
     fn place_tower_twice() {
-        let mut map = Map::new();
+        let mut map = Map::default();
         assert!(map.place_tower(&IVec2 { x: 0, y: 1 }));
         assert!(!map.place_tower(&IVec2 { x: 0, y: 1 }));
     }
@@ -152,7 +154,7 @@ mod tests {
         let mut map = Map {
             start: ivec2(0, 0),
             end: ivec2(2, 2),
-            ..Map::new()
+            ..Map::default()
         };
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
         map.place_tower(&IVec2 { x: 1, y: 0 }); // This is the tower (x in the example)

@@ -28,7 +28,7 @@ pub fn move_creeps(mut creeps: Query<&mut MovingEntity>, time: Res<Time>) {
                 creep.pos = creep.pos.move_towards(*waypoint, delta);
             } else {
                 // TODO move delta and loop over distance
-                creep.pos = waypoint.clone();
+                creep.pos = *waypoint;
                 creep.waypoints.pop();
             }
         }
