@@ -16,15 +16,20 @@ pub fn setup(mut commands: Commands) {
 
 pub fn move_creeps(mut creeps: Query<&mut MovingEntity>, time: Res<Time>) {
     for mut creep in &mut creeps {
-        if let Some(waypoint) = creep.waypoints.last() {
-            let distance = creep.pos.distance(*waypoint);
-            let delta = creep.speed * time.delta_secs();
-            if delta < distance {
-                creep.pos = creep.pos.move_towards(*waypoint, delta);
-            } else {
-                // TODO move delta and loop over distance
-                creep.pos = *waypoint;
-                creep.waypoints.pop();
+        let mut delta = creep.speed * time.delta_secs();
+        while delta > 0.0 && !creep.waypoints.is_empty() {
+            if let Some(waypoint) = creep.waypoints.last() {
+                let distance = creep.pos.distance(*waypoint);
+                if delta < distance {
+                    creep.pos = creep.pos.move_towards(*waypoint, delta);
+                    delta = 0.0; // No more movement this frame
+                } else {
+                    // Move as close as possible to the waypoint
+                    creep.pos = *waypoint;
+                    // Remove the waypoint from the list
+                    creep.waypoints.pop();
+                    delta -= distance; // Reduce the remaining delta
+                }
             }
         }
     }
