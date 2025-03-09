@@ -16,7 +16,12 @@ impl Plugin for TowerDefenseGui {
             .add_event::<UpdatePath>()
             .add_systems(
                 Update,
-                (mouse_input, update_path, move_creeps, reset_creeps
+                (
+                    mouse_input,
+                    update_path,
+                    move_creeps,
+                    reset_creeps,
+                    add_sprite_to_moving_entity,
                 ),
             );
     }

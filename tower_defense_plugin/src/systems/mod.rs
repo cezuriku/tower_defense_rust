@@ -1,15 +1,10 @@
-use bevy::color::Color;
 use bevy::math::vec2;
-use bevy::sprite::Sprite;
 use bevy::{ecs::system::*, time::Time, transform::components::Transform};
 
 use crate::components::*;
 
 pub fn setup(mut commands: Commands) {
     commands.spawn(Creep {
-        sprite: Sprite {
-            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(20.0, 20.0))
-        },
         moving_entity: MovingEntity {
             pos: vec2(15.0, 15.0),
             speed: 20.0,

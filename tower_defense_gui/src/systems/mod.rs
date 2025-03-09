@@ -147,9 +147,6 @@ pub fn reset_creeps(
     for _ in target.read() {
         q_move.iter().for_each(|e| commands.entity(e).despawn());
         commands.spawn(Creep {
-            sprite: Sprite {
-                ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(20.0, 20.0))
-            },
             moving_entity: MovingEntity {
                 pos: vec2(15.0, 15.0),
                 speed: 120.0,
@@ -161,6 +158,17 @@ pub fn reset_creeps(
                     .collect(),
             },
             transform: Transform::from_xyz(0.0, 0.0, 200.0),
+        });
+    }
+}
+
+pub fn add_sprite_to_moving_entity(
+    mut commands: Commands,
+    mut query: Query<(Entity, &MovingEntity), Added<MovingEntity>>,
+) {
+    for (entity, _) in &mut query {
+        commands.entity(entity).insert_if_new(Sprite {
+            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(20.0, 20.0))
         });
     }
 }

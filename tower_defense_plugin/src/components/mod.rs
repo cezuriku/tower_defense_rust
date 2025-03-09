@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 #[derive(Bundle)]
 pub struct Creep {
-    pub sprite: Sprite, // Todo remove sprite from plugin (should be gui)
     pub moving_entity: MovingEntity,
     pub transform: Transform,
 }
