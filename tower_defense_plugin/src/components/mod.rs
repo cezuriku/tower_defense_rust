@@ -1,9 +1,13 @@
 use bevy::prelude::*;
 
+#[derive(Component)]
+pub struct Creep {}
+
 #[derive(Bundle)]
-pub struct Creep {
+pub struct CreepBundle {
     pub moving_entity: MovingEntity,
     pub transform: Transform,
+    pub creep: Creep,
 }
 
 #[derive(Component)]

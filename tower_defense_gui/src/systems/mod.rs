@@ -4,6 +4,7 @@ use bevy::math::vec2;
 use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
+use tower_defense_plugin::components::CreepBundle;
 use tower_defense_plugin::components::MovingEntity;
 use tower_defense_plugin::resources::Map;
 
@@ -142,11 +143,11 @@ pub fn reset_creeps(
     mut commands: Commands,
     mut target: EventReader<UpdatePath>,
     map: Res<Map>,
-    q_move: Query<Entity, With<MovingEntity>>,
+    q_move: Query<Entity, With<Creep>>,
 ) {
     for _ in target.read() {
         q_move.iter().for_each(|e| commands.entity(e).despawn());
-        commands.spawn(Creep {
+        commands.spawn(CreepBundle {
             moving_entity: MovingEntity {
                 pos: vec2(15.0, 15.0),
                 speed: 120.0,
@@ -158,13 +159,14 @@ pub fn reset_creeps(
                     .collect(),
             },
             transform: Transform::from_xyz(0.0, 0.0, 200.0),
+            creep: Creep {},
         });
     }
 }
 
-pub fn add_sprite_to_moving_entity(
+pub fn add_sprite_to_creep(
     mut commands: Commands,
-    mut query: Query<(Entity, &MovingEntity), Added<MovingEntity>>,
+    mut query: Query<(Entity, &Creep), Added<MovingEntity>>,
 ) {
     for (entity, _) in &mut query {
         commands.entity(entity).insert_if_new(Sprite {

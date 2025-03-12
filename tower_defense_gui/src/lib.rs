@@ -21,7 +21,7 @@ impl Plugin for TowerDefenseGui {
                     update_path,
                     move_creeps,
                     reset_creeps,
-                    add_sprite_to_moving_entity,
+                    add_sprite_to_creep,
                 ),
             );
     }
