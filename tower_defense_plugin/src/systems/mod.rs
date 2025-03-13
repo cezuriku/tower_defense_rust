@@ -1,19 +1,11 @@
-use bevy::math::vec2;
-use bevy::{ecs::system::*, time::Time, transform::components::Transform};
+use bevy::prelude::*;
+use bevy::{time::Time, transform::components::Transform};
 
 use crate::components::*;
+use crate::events::*;
+use crate::resources::*;
 
-pub fn setup(mut commands: Commands) {
-    commands.spawn(CreepBundle {
-        moving_entity: MovingEntity {
-            pos: vec2(15.0, 15.0),
-            speed: 20.0,
-            waypoints: vec![vec2(285.0, 285.0), vec2(75.0, 125.0), vec2(40.0, 40.0)],
-        },
-        transform: Transform::from_xyz(0.0, 0.0, 200.0),
-        creep: Creep {},
-    });
-}
+pub fn setup() {}
 
 pub fn move_creeps(mut creeps: Query<&mut MovingEntity>, time: Res<Time>) {
     for mut creep in &mut creeps {
@@ -34,12 +26,61 @@ pub fn move_creeps(mut creeps: Query<&mut MovingEntity>, time: Res<Time>) {
     }
 }
 
+pub fn handle_turret_placement(
+    mut commands: Commands,
+    mut events: EventReader<PlaceTurretEvent>,
+    mut game_data: ResMut<GameData>,
+    mut map: ResMut<Map>,
+    mut new_turret_writer: EventWriter<NewTurretEvent>,
+) {
+    for event in events.read() {
+        let cost = match event.turret_type {
+            TurretType::Basic => 50,
+            TurretType::Advanced => 100,
+        };
+
+        if game_data.gold >= cost && map.is_turret_possible(&event.position) {
+            // Deduct gold
+            game_data.gold -= cost;
+
+            map.place_tower(&event.position);
+
+            commands.spawn((Turret {
+                turret_type: event.turret_type,
+                position: event.position,
+                transform: Transform::from_xyz(
+                    event.position.x as f32 * 10.0,
+                    event.position.y as f32 * 10.0,
+                    0.0,
+                ),
+                range: 25.0,
+                damage: 10.0,
+                fire_rate: 1.0,
+                last_fired: 0.0,
+            },));
+
+            // Send NewTurretEvent
+            new_turret_writer.send(NewTurretEvent {
+                turret_type: event.turret_type,
+                position: event.position,
+            });
+
+            println!("Turret placed successfully!");
+        } else {
+            println!(
+                "Insufficient resources to place turret! Cost: {cost} Gold: {} ",
+                game_data.gold
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
     use super::*;
-    use bevy::{prelude::*, time::TimeUpdateStrategy};
+    use bevy::time::TimeUpdateStrategy;
 
     #[test]
     fn test_move_creeps() {

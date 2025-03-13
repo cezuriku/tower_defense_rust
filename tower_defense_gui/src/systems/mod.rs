@@ -3,10 +3,9 @@ use crate::resources::*;
 use bevy::math::vec2;
 use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
-use tower_defense_plugin::components::Creep;
-use tower_defense_plugin::components::CreepBundle;
-use tower_defense_plugin::components::MovingEntity;
-use tower_defense_plugin::resources::Map;
+use tower_defense_plugin::components::*;
+use tower_defense_plugin::events::*;
+use tower_defense_plugin::resources::*;
 
 pub fn setup(
     mut commands: Commands,
@@ -18,6 +17,11 @@ pub fn setup(
     commands.insert_resource(TowerAssets {
         mesh: meshes.add(Rectangle::new(30.0, 30.0)),
         material: materials.add(Color::BLACK),
+    });
+
+    commands.insert_resource(Gui {
+        grid_origin: Vec2::new(-150.0, -150.0),
+        cell_size: Vec2::new(30.0, 30.0),
     });
 
     let path_assets = PathAssets {
@@ -66,44 +70,49 @@ pub fn mouse_input(
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
-    mut commands: Commands,
-    mut path_updater: EventWriter<UpdatePath>,
-    mut map: ResMut<Map>,
-    tower_assets: Res<TowerAssets>,
+    gui: Res<Gui>,
+    mut turret_events: EventWriter<PlaceTurretEvent>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let (camera, camera_transform) = q_camera.single();
         if let Some(cursor) = q_windows.single().cursor_position() {
             if let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor) {
-                println!("Cursor is inside the primary window, at {:?}", position);
-
                 let pos = IVec2 {
-                    x: (position.x as i32 + 150) / 30,
-                    y: (position.y as i32 + 150) / 30,
+                    x: ((position.x - gui.grid_origin.x) / gui.cell_size.x) as i32,
+                    y: ((position.y - gui.grid_origin.y) / gui.cell_size.y) as i32,
                 };
 
-                if map.place_tower(&pos) {
-                    map.recompute_path();
-                    if !map.path.is_empty() {
-                        path_updater.send(UpdatePath {});
-
-                        commands.spawn((
-                            Mesh2d(tower_assets.mesh.clone()),
-                            MeshMaterial2d(tower_assets.material.clone()),
-                            Transform::from_xyz(
-                                pos.x as f32 * 30.0 - 135.0,
-                                pos.y as f32 * 30.0 - 135.0,
-                                50.0,
-                            ),
-                        ));
-                    } else {
-                        map.remove_tower(&pos)
-                    }
-                }
+                turret_events.send(PlaceTurretEvent {
+                    turret_type: TurretType::Basic,
+                    position: pos,
+                });
             }
-        } else {
-            println!("Cursor is not in the game window.");
         }
+    }
+}
+
+pub fn new_turrets(
+    mut commands: Commands,
+    tower_assets: Res<TowerAssets>,
+    gui: Res<Gui>,
+    mut events: EventReader<NewTurretEvent>,
+    mut update_path: EventWriter<UpdatePath>,
+) {
+    let mut should_update_path = false;
+    for event in events.read() {
+        commands.spawn((
+            Mesh2d(tower_assets.mesh.clone()),
+            MeshMaterial2d(tower_assets.material.clone()),
+            Transform::from_xyz(
+                (event.position.x as f32 + 0.5) * gui.cell_size.x + gui.grid_origin.x,
+                (event.position.y as f32 + 0.5) * gui.cell_size.y + gui.grid_origin.y,
+                50.0,
+            ),
+        ));
+        should_update_path = true;
+    }
+    if should_update_path {
+        update_path.send(UpdatePath {});
     }
 }
 
@@ -159,7 +168,7 @@ pub fn reset_creeps(
                     .collect(),
             },
             transform: Transform::from_xyz(0.0, 0.0, 200.0),
-            creep: Creep {},
+            creep: Creep { health: 40.0 },
         });
     }
 }

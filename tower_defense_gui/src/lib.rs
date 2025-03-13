@@ -22,6 +22,7 @@ impl Plugin for TowerDefenseGui {
                     move_creeps,
                     reset_creeps,
                     add_sprite_to_creep,
+                    new_turrets,
                 ),
             );
     }

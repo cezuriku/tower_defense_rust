@@ -7,6 +7,12 @@ pub struct TowerAssets {
 }
 
 #[derive(Resource)]
+pub struct Gui {
+    pub grid_origin: Vec2,
+    pub cell_size: Vec2,
+}
+
+#[derive(Resource)]
 pub struct PathAssets {
     pub mesh: Handle<Mesh>,
     pub material: Handle<ColorMaterial>,

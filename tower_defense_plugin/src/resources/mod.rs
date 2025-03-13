@@ -1,4 +1,4 @@
-use bevy::{ecs::system::Resource, math::*, time::Timer};
+use bevy::{ecs::system::Resource, math::*};
 use pathfinding::prelude::astar;
 
 /// Grid size constants
@@ -6,7 +6,22 @@ pub const GRID_WIDTH: usize = 10;
 pub const GRID_HEIGHT: usize = 10;
 
 #[derive(Resource)]
-pub struct GreetTimer(pub Timer);
+pub struct GameData {
+    pub score: i32,
+    pub lives: i32,
+    pub gold: i32,
+}
+
+impl Default for GameData {
+    /// Create a new grid with default values
+    fn default() -> Self {
+        Self {
+            score: 0,
+            lives: 10,
+            gold: 500,
+        }
+    }
+}
 
 #[derive(Resource)]
 pub struct Map {
@@ -30,7 +45,7 @@ impl Default for Map {
 
 impl Map {
     pub fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.is_valid(pos) {
+        if !self.is_empty(pos) {
             return false;
         }
         self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
@@ -45,12 +60,38 @@ impl Map {
         start.x.abs_diff(end.x).pow(2) + start.y.abs_diff(end.y).pow(2)
     }
 
-    fn is_valid(&self, pos: &IVec2) -> bool {
+    fn is_empty(&self, pos: &IVec2) -> bool {
         pos.x >= 0
             && pos.y >= 0
             && pos.x < GRID_WIDTH as i32
             && pos.y < GRID_HEIGHT as i32
             && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
+    }
+
+    pub fn is_turret_possible(&self, pos: &IVec2) -> bool {
+        if pos.x >= 0
+            && pos.y >= 0
+            && pos.x < GRID_WIDTH as i32
+            && pos.y < GRID_HEIGHT as i32
+            && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
+        {
+            if let Some((_, _)) = astar(
+                &self.start,
+                |p| self.successors_except(p, pos),
+                |p| Self::distance(p, &self.end),
+                |p| *p == self.end,
+            ) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn successors_except(&self, pos: &IVec2, except: &IVec2) -> Vec<(IVec2, u32)> {
+        if except == pos {
+            return vec![];
+        }
+        self.successors(pos)
     }
 
     fn successors(&self, pos: &IVec2) -> Vec<(IVec2, u32)> {
@@ -62,13 +103,13 @@ impl Map {
         ]
         .into_iter()
         .filter(|p| {
-            self.is_valid(&IVec2 {
+            self.is_empty(&IVec2 {
                 x: p.x + pos.x,
                 y: pos.y,
-            }) && self.is_valid(&IVec2 {
+            }) && self.is_empty(&IVec2 {
                 x: pos.x,
                 y: p.y + pos.y,
-            }) && self.is_valid(&(p + pos))
+            }) && self.is_empty(&(p + pos))
         })
         .map(|p| (p + pos, 75));
 
@@ -91,7 +132,7 @@ impl Map {
             },
         ]
         .into_iter()
-        .filter(|p| self.is_valid(p))
+        .filter(|p| self.is_empty(p))
         .map(|p| (p, 50));
 
         straight.chain(diag).collect()
