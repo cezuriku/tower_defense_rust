@@ -79,6 +79,41 @@ pub fn handle_turret_placement(
         }
     }
 }
+
+pub fn spawn_creeps(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut last_spawn_time: Local<f32>,
+    map: Res<Map>,
+) {
+    *last_spawn_time += time.delta_secs();
+
+    if *last_spawn_time > 5.0 {
+        *last_spawn_time = 0.0;
+
+        let start_pos = map.start;
+        let waypoints: Vec<Vec2> = map
+            .path
+            .iter()
+            .map(|pos| Vec2::new(pos.x as f32 * 10.0, pos.y as f32 * 10.0))
+            .rev()
+            .collect();
+
+        commands.spawn((
+            MovingEntity {
+                speed: 20.0,
+                waypoints,
+            },
+            Transform::from_translation(Vec3::new(
+                start_pos.x as f32 * 10.0,
+                start_pos.y as f32 * 10.0,
+                0.0,
+            )),
+            Creep { health: 40.0 },
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;

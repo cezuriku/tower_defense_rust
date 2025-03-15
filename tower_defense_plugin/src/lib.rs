@@ -24,6 +24,6 @@ impl Plugin for TowerDefensePlugin {
 
         // Add systems
         app.add_systems(Startup, setup)
-            .add_systems(Update, (move_creeps, handle_turret_placement));
+            .add_systems(Update, (spawn_creeps, move_creeps, handle_turret_placement));
     }
 }
