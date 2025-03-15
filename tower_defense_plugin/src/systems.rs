@@ -147,7 +147,7 @@ pub fn shoot_creeps(
                     // Optionally, handle creep death
                     if creep.health <= 0.0 {
                         println!("Creep killed by turret!");
-                        commands.entity(creep_entity).despawn();
+                        commands.entity(creep_entity).despawn_recursive();
                     } else {
                         println!("Creep hit by turret! Health: {}", creep.health);
                     }

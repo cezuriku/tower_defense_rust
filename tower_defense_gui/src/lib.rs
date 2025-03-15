@@ -15,7 +15,14 @@ impl Plugin for TowerDefenseGui {
         app.insert_resource(ClearColor(Color::BLACK));
 
         // Add systems
-        app.add_systems(Startup, setup)
-            .add_systems(Update, (mouse_input, new_turrets, handle_new_creep));
+        app.add_systems(Startup, setup).add_systems(
+            Update,
+            (
+                mouse_input,
+                new_turrets,
+                handle_new_creep,
+                health_bar_system,
+            ),
+        );
     }
 }

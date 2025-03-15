@@ -8,3 +8,6 @@ pub struct MainCamera;
 
 #[derive(Component)]
 pub struct MapAnchor;
+
+#[derive(Component)]
+pub struct HealthBar {}

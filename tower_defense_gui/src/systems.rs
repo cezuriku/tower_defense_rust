@@ -2,6 +2,7 @@ use crate::components::*;
 use crate::resources::*;
 use bevy::math::vec2;
 use bevy::render::camera::ScalingMode;
+use bevy::sprite::Anchor;
 use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
@@ -24,6 +25,12 @@ pub fn setup(
     commands.insert_resource(CreepAssets {
         creep_sprite: Sprite {
             ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(8.0, 8.0))
+        },
+        health_bar_back_sprite: Sprite {
+            ..Sprite::from_color(Color::srgb(1.0, 0.0, 0.0), vec2(1.5, 8.0))
+        },
+        health_bar_front_sprite: Sprite {
+            ..Sprite::from_color(Color::srgb(0.0, 1.0, 0.0), vec2(1.5, 8.0))
         },
     });
 
@@ -191,11 +198,44 @@ pub fn handle_new_creep(
     map_anchor_query: Query<(Entity, &MapAnchor)>,
     creep_assets: Res<CreepAssets>,
 ) {
-    let (parent, _) = map_anchor_query.single();
-    for (entity, _) in &mut query {
-        commands.entity(parent).add_child(entity);
+    let (anchor, _) = map_anchor_query.single();
+    for (creep, _) in &mut query {
+        commands.entity(anchor).add_child(creep);
         commands
-            .entity(entity)
+            .entity(creep)
             .insert_if_new(creep_assets.creep_sprite.clone());
+
+        let health_bar = commands
+            .spawn((
+                creep_assets.health_bar_back_sprite.clone(),
+                Transform::from_xyz(0.0, 0.0, 1.0),
+            ))
+            .id();
+        commands.entity(creep).add_child(health_bar);
+
+        let inner_health_bar = commands
+            .spawn((
+                Sprite {
+                    anchor: Anchor::TopCenter,
+                    ..creep_assets.health_bar_front_sprite.clone()
+                },
+                Transform::from_xyz(0.0, 4.0, 2.0),
+                HealthBar {},
+            ))
+            .id();
+        commands.entity(creep).add_child(inner_health_bar);
+    }
+}
+
+pub fn health_bar_system(
+    q_creep: Query<(&Creep, &Children), Changed<Creep>>,
+    mut q_health_bar: Query<&mut Sprite, With<HealthBar>>,
+) {
+    for (creep, children) in &q_creep {
+        for &child in children.iter() {
+            if let Ok(mut sprite) = q_health_bar.get_mut(child) {
+                sprite.custom_size = Some(Vec2::new(1.5, creep.health / creep.max_health * 8.0));
+            }
+        }
     }
 }

@@ -19,4 +19,6 @@ pub struct PathAssets {
 #[derive(Resource)]
 pub struct CreepAssets {
     pub creep_sprite: Sprite,
+    pub health_bar_back_sprite: Sprite,
+    pub health_bar_front_sprite: Sprite,
 }
