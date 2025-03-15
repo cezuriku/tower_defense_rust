@@ -35,7 +35,7 @@ pub fn setup(
         &path_assets.mesh,
         &path_assets.material,
         &map,
-        Vec2::new(-47.5, -47.5),
+        Vec2::new(-45.0, -45.0),
     );
 
     commands.spawn((
@@ -74,7 +74,7 @@ pub fn setup(
             },
         },
     ));
-    commands.spawn((Transform::from_xyz(-47.5, -47.5, 10.0), MapAnchor));
+    commands.spawn((Transform::from_xyz(-45.0, -45.0, 10.0), MapAnchor));
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(100.0, 100.0))),
         MeshMaterial2d(materials.add(Color::srgb_u8(85, 20, 10))),
@@ -102,8 +102,8 @@ pub fn mouse_input(
                 );
 
                 let pos = IVec2 {
-                    x: ((position.x - grid_origin.x + 2.5) / 10.0) as i32,
-                    y: ((position.y - grid_origin.y + 2.5) / 10.0) as i32,
+                    x: ((position.x - grid_origin.x + 5.0) / 10.0) as i32,
+                    y: ((position.y - grid_origin.y + 5.0) / 10.0) as i32,
                 };
 
                 println!("placing turret at {:?}", pos);
@@ -135,8 +135,8 @@ pub fn new_turrets(
             Mesh2d(tower_assets.mesh.clone()),
             MeshMaterial2d(tower_assets.material.clone()),
             Transform::from_xyz(
-                (event.position.x as f32 + 0.25) * 10.0 + grid_origin.x,
-                (event.position.y as f32 + 0.25) * 10.0 + grid_origin.y,
+                (event.position.x as f32) * 10.0 + grid_origin.x,
+                (event.position.y as f32) * 10.0 + grid_origin.y,
                 50.0,
             ),
         ));
@@ -166,9 +166,9 @@ pub fn draw_path(
             Mesh2d(mesh.clone()),
             MeshMaterial2d(material.clone()),
             Transform::from_xyz(
-                (pos.x as f32 + 0.25) * 10.0 + grid_origin.x,
-                (pos.y as f32 + 0.25) * 10.0 + grid_origin.y,
-                100.0,
+                (pos.x as f32) * 10.0 + grid_origin.x,
+                (pos.y as f32) * 10.0 + grid_origin.y,
+                1.0,
             ),
             Path {},
         ));
@@ -184,7 +184,7 @@ pub fn handle_new_creep(
     for (entity, _) in &mut query {
         commands.entity(parent).add_child(entity);
         commands.entity(entity).insert_if_new(Sprite {
-            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(20.0, 20.0))
+            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(8.0, 8.0))
         });
     }
 }
