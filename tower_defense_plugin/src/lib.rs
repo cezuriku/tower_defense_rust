@@ -1,15 +1,11 @@
-//use crate::systems::*;
-use crate::systems::*;
-use bevy::{
-    app::*,
-    color::Color,
-    render::camera::ClearColor,
-    time::{Timer, TimerMode},
-};
-use resources::{GreetTimer, Map};
+use bevy::prelude::*;
 
 pub mod components;
-// pub mod events;
+pub mod events;
+pub mod map;
+pub use map::*;
+use resources::GameData;
+use systems::*;
 pub mod resources;
 mod systems;
 
@@ -17,10 +13,24 @@ pub struct TowerDefensePlugin;
 
 impl Plugin for TowerDefensePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)));
-        app.insert_resource(Map::default());
-        app.add_systems(Startup, setup);
-        app.add_systems(Update, move_creeps);
-        app.insert_resource(ClearColor(Color::BLACK));
+        // Add events
+        app.add_event::<events::PlaceTurretEvent>()
+            .add_event::<events::NewTurretEvent>()
+            .add_event::<events::MapChangedEvent>();
+
+        // Insert resources
+        app.insert_resource(Map::default())
+            .insert_resource(GameData::default());
+
+        // Add systems
+        app.add_systems(Startup, setup).add_systems(
+            Update,
+            (
+                spawn_creeps,
+                move_creeps,
+                handle_turret_placement,
+                shoot_creeps,
+            ),
+        );
     }
 }

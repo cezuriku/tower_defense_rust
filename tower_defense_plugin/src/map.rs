@@ -1,12 +1,8 @@
-use bevy::{ecs::system::Resource, math::*, time::Timer};
+use bevy::{math::ivec2, prelude::*};
 use pathfinding::prelude::astar;
 
-/// Grid size constants
 pub const GRID_WIDTH: usize = 10;
 pub const GRID_HEIGHT: usize = 10;
-
-#[derive(Resource)]
-pub struct GreetTimer(pub Timer);
 
 #[derive(Resource)]
 pub struct Map {
@@ -17,23 +13,34 @@ pub struct Map {
 }
 
 impl Default for Map {
-    /// Create a new grid with default values
     fn default() -> Self {
         Self {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
             start: ivec2(0, 0),
             end: ivec2(9, 9),
-            path: vec![],
+            path: vec![
+                IVec2 { x: 0, y: 0 },
+                IVec2 { x: 1, y: 1 },
+                IVec2 { x: 2, y: 2 },
+                IVec2 { x: 3, y: 3 },
+                IVec2 { x: 4, y: 4 },
+                IVec2 { x: 5, y: 5 },
+                IVec2 { x: 6, y: 6 },
+                IVec2 { x: 7, y: 7 },
+                IVec2 { x: 8, y: 8 },
+                IVec2 { x: 9, y: 9 },
+            ],
         }
     }
 }
 
 impl Map {
     pub fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.is_valid(pos) {
+        if !self.is_empty(pos) {
             return false;
         }
         self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
+        self.recompute_path();
         true
     }
 
@@ -45,12 +52,40 @@ impl Map {
         start.x.abs_diff(end.x).pow(2) + start.y.abs_diff(end.y).pow(2)
     }
 
-    fn is_valid(&self, pos: &IVec2) -> bool {
+    fn is_empty(&self, pos: &IVec2) -> bool {
         pos.x >= 0
             && pos.y >= 0
             && pos.x < GRID_WIDTH as i32
             && pos.y < GRID_HEIGHT as i32
             && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
+    }
+
+    pub fn is_turret_possible(&self, pos: &IVec2) -> bool {
+        if pos.x >= 0
+            && pos.y >= 0
+            && pos.x < GRID_WIDTH as i32
+            && pos.y < GRID_HEIGHT as i32
+            && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
+            && *pos != self.end
+            && *pos != self.start
+            && astar(
+                &self.start,
+                |p| self.successors_except(p, pos),
+                |p| Self::distance(p, &self.end),
+                |p| *p == self.end,
+            )
+            .is_some()
+        {
+            return true;
+        }
+        false
+    }
+
+    fn successors_except(&self, pos: &IVec2, except: &IVec2) -> Vec<(IVec2, u32)> {
+        if except == pos {
+            return vec![];
+        }
+        self.successors(pos)
     }
 
     fn successors(&self, pos: &IVec2) -> Vec<(IVec2, u32)> {
@@ -62,13 +97,13 @@ impl Map {
         ]
         .into_iter()
         .filter(|p| {
-            self.is_valid(&IVec2 {
+            self.is_empty(&IVec2 {
                 x: p.x + pos.x,
                 y: pos.y,
-            }) && self.is_valid(&IVec2 {
+            }) && self.is_empty(&IVec2 {
                 x: pos.x,
                 y: p.y + pos.y,
-            }) && self.is_valid(&(p + pos))
+            }) && self.is_empty(&(p + pos))
         })
         .map(|p| (p + pos, 75));
 
@@ -91,7 +126,7 @@ impl Map {
             },
         ]
         .into_iter()
-        .filter(|p| self.is_valid(p))
+        .filter(|p| self.is_empty(p))
         .map(|p| (p, 50));
 
         straight.chain(diag).collect()

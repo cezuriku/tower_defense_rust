@@ -15,6 +15,3 @@ pub struct PathAssets {
     pub end_mesh: Handle<Mesh>,
     pub end_material: Handle<ColorMaterial>,
 }
-
-#[derive(Event)]
-pub struct UpdatePath {}
