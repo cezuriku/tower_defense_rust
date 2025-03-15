@@ -3,6 +3,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Creep {
     pub health: f32,
+    pub max_health: f32,
 }
 
 #[derive(Bundle)]

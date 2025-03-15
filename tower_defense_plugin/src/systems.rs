@@ -109,7 +109,10 @@ pub fn spawn_creeps(
                 start_pos.y as f32 * 10.0,
                 0.0,
             )),
-            Creep { health: 100.0 },
+            Creep {
+                health: 100.0,
+                max_health: 100.0,
+            },
         ));
     }
 }
@@ -127,13 +130,15 @@ pub fn shoot_creeps(
         // Update last fired time
         turret.last_fired += time.delta_secs();
 
-        for (creep_entity, mut creep, creep_transform) in creeps.iter_mut() {
-            let creep_position = creep_transform.translation.truncate();
-            let distance = turret_position.distance(creep_position);
+        if turret.last_fired >= turret.reload_time {
+            for (creep_entity, mut creep, creep_transform) in creeps.iter_mut() {
+                let creep_position = creep_transform.translation.truncate();
+                let distance = turret_position.distance(creep_position);
 
-            if distance <= turret.range {
-                // Check if the turret can fire
-                if turret.last_fired >= turret.reload_time {
+                if turret.last_fired >= turret.reload_time
+                    && distance <= turret.range
+                    && creep.health > 0.0
+                {
                     // Reduce creep health
                     creep.health -= turret.damage;
 

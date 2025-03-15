@@ -21,6 +21,12 @@ pub fn setup(
         material: materials.add(Color::BLACK),
     });
 
+    commands.insert_resource(CreepAssets {
+        creep_sprite: Sprite {
+            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(8.0, 8.0))
+        },
+    });
+
     let path_assets = PathAssets {
         mesh: meshes.add(Rectangle::new(3.0, 3.0)),
         material: materials.add(Color::srgb_u8(218, 165, 35)),
@@ -183,12 +189,13 @@ pub fn handle_new_creep(
     mut commands: Commands,
     mut query: Query<(Entity, &Creep), Added<Creep>>,
     map_anchor_query: Query<(Entity, &MapAnchor)>,
+    creep_assets: Res<CreepAssets>,
 ) {
     let (parent, _) = map_anchor_query.single();
     for (entity, _) in &mut query {
         commands.entity(parent).add_child(entity);
-        commands.entity(entity).insert_if_new(Sprite {
-            ..Sprite::from_color(Color::srgb(0.25, 0.25, 0.75), vec2(8.0, 8.0))
-        });
+        commands
+            .entity(entity)
+            .insert_if_new(creep_assets.creep_sprite.clone());
     }
 }

@@ -15,3 +15,8 @@ pub struct PathAssets {
     pub end_mesh: Handle<Mesh>,
     pub end_material: Handle<ColorMaterial>,
 }
+
+#[derive(Resource)]
+pub struct CreepAssets {
+    pub creep_sprite: Sprite,
+}
