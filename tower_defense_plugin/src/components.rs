@@ -16,7 +16,6 @@ pub struct CreepBundle {
 pub struct MovingEntity {
     pub waypoints: Vec<Vec2>,
     pub speed: f32,
-    pub pos: Vec2,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

@@ -1,27 +1,8 @@
-use bevy::{ecs::system::Resource, math::*};
+use bevy::{math::ivec2, prelude::*};
 use pathfinding::prelude::astar;
 
-/// Grid size constants
 pub const GRID_WIDTH: usize = 10;
 pub const GRID_HEIGHT: usize = 10;
-
-#[derive(Resource)]
-pub struct GameData {
-    pub score: i32,
-    pub lives: i32,
-    pub gold: i32,
-}
-
-impl Default for GameData {
-    /// Create a new grid with default values
-    fn default() -> Self {
-        Self {
-            score: 0,
-            lives: 10,
-            gold: 500,
-        }
-    }
-}
 
 #[derive(Resource)]
 pub struct Map {
@@ -32,13 +13,23 @@ pub struct Map {
 }
 
 impl Default for Map {
-    /// Create a new grid with default values
     fn default() -> Self {
         Self {
             cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
             start: ivec2(0, 0),
             end: ivec2(9, 9),
-            path: vec![],
+            path: vec![
+                IVec2 { x: 0, y: 0 },
+                IVec2 { x: 1, y: 1 },
+                IVec2 { x: 2, y: 2 },
+                IVec2 { x: 3, y: 3 },
+                IVec2 { x: 4, y: 4 },
+                IVec2 { x: 5, y: 5 },
+                IVec2 { x: 6, y: 6 },
+                IVec2 { x: 7, y: 7 },
+                IVec2 { x: 8, y: 8 },
+                IVec2 { x: 9, y: 9 },
+            ],
         }
     }
 }
@@ -49,6 +40,7 @@ impl Map {
             return false;
         }
         self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
+        self.recompute_path();
         true
     }
 
@@ -74,15 +66,17 @@ impl Map {
             && pos.x < GRID_WIDTH as i32
             && pos.y < GRID_HEIGHT as i32
             && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
-        {
-            if let Some((_, _)) = astar(
+            && *pos != self.end
+            && *pos != self.start
+            && astar(
                 &self.start,
                 |p| self.successors_except(p, pos),
                 |p| Self::distance(p, &self.end),
                 |p| *p == self.end,
-            ) {
-                return true;
-            }
+            )
+            .is_some()
+        {
+            return true;
         }
         false
     }
