@@ -13,3 +13,6 @@ pub struct NewTurretEvent {
     pub turret_type: TurretType,
     pub position: IVec2,
 }
+
+#[derive(Event)]
+pub struct MapChangedEvent;

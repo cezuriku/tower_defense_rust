@@ -3,21 +3,24 @@ use bevy::{time::Time, transform::components::Transform};
 
 use crate::components::*;
 use crate::events::*;
+use crate::map::Map;
 use crate::resources::*;
 
 pub fn setup() {}
 
-pub fn move_creeps(mut creeps: Query<&mut MovingEntity>, time: Res<Time>) {
-    for mut creep in &mut creeps {
+pub fn move_creeps(mut creeps: Query<(&mut MovingEntity, &mut Transform)>, time: Res<Time>) {
+    for (mut creep, mut transform) in &mut creeps {
         let mut delta = creep.speed * time.delta_secs();
         while delta > 0.0 && !creep.waypoints.is_empty() {
             if let Some(waypoint) = creep.waypoints.last() {
-                let distance = creep.pos.distance(*waypoint);
+                let distance = transform.translation.distance(waypoint.extend(0.0));
                 if delta < distance {
-                    creep.pos = creep.pos.move_towards(*waypoint, delta);
+                    transform.translation = transform
+                        .translation
+                        .move_towards(waypoint.extend(0.0), delta);
                     delta = 0.0;
                 } else {
-                    creep.pos = *waypoint;
+                    transform.translation = waypoint.extend(0.0);
                     creep.waypoints.pop();
                     delta -= distance;
                 }
@@ -32,6 +35,7 @@ pub fn handle_turret_placement(
     mut game_data: ResMut<GameData>,
     mut map: ResMut<Map>,
     mut new_turret_writer: EventWriter<NewTurretEvent>,
+    mut map_changed_writer: EventWriter<MapChangedEvent>,
 ) {
     for event in events.read() {
         let cost = match event.turret_type {
@@ -59,11 +63,12 @@ pub fn handle_turret_placement(
                 last_fired: 0.0,
             },));
 
-            // Send NewTurretEvent
             new_turret_writer.send(NewTurretEvent {
                 turret_type: event.turret_type,
                 position: event.position,
             });
+
+            map_changed_writer.send(MapChangedEvent {});
 
             println!("Turret placed successfully!");
         } else {
@@ -74,7 +79,6 @@ pub fn handle_turret_placement(
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -95,29 +99,30 @@ mod tests {
                 fixed_delta,
             )));
 
-        app.world_mut().spawn((MovingEntity {
-            pos: Vec2::new(15.0, 15.0),
-            speed,
-            waypoints: vec![Vec2::new(200.0, 15.0), next_waypoint],
-        },));
+        app.world_mut().spawn((
+            MovingEntity {
+                speed,
+                waypoints: vec![Vec2::new(200.0, 15.0), next_waypoint],
+            },
+            Transform::from_translation(Vec3::new(15.0, 15.0, 0.0)),
+        ));
 
         app.update();
 
         let world = app.world_mut();
-        let mut query = world.query::<&mut MovingEntity>();
-        let creep = query.single_mut(world);
+        let mut query = world.query::<(&MovingEntity, &Transform)>();
+        let (_creep, transform) = query.single(world);
 
-        assert_eq!(creep.pos, Vec2::new(15.0, 15.0)); // No movement since delta time is 0
+        assert_eq!(transform.translation.truncate(), Vec2::new(15.0, 15.0)); // No movement since delta time is 0
 
         app.update();
 
         let world = app.world_mut();
-        let mut query = world.query::<&mut MovingEntity>();
-        let creep = query.single_mut(world);
+        let mut query = world.query::<(&MovingEntity, &Transform)>();
+        let (_creep, transform) = query.single(world);
 
         // Update the expected position based on the movement logic in `move_creeps`
-
         let expected_pos = Vec2::new(15.0, 15.0).move_towards(next_waypoint, fixed_delta * speed);
-        assert_eq!(creep.pos, expected_pos); // Check if the position has updated correctly
+        assert_eq!(transform.translation.truncate(), expected_pos); // Check if the position has updated correctly
     }
 }
