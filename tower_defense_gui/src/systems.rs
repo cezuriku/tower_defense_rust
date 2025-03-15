@@ -65,10 +65,13 @@ pub fn setup(
         OrthographicProjection {
             near: -1000.0,
             far: 1000.0,
-            scale: 0.3,
+            scale: 1.0,
             area: Rect::new(-100.0, -100.0, 100.0, 100.0),
             viewport_origin: Vec2::new(0.5, 0.5),
-            scaling_mode: ScalingMode::WindowSize,
+            scaling_mode: ScalingMode::AutoMin {
+                min_width: 110.0,
+                min_height: 110.0,
+            },
         },
     ));
     commands.spawn((Transform::from_xyz(-47.5, -47.5, 10.0), MapAnchor));
