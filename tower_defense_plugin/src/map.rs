@@ -133,16 +133,20 @@ impl Map {
     }
 
     pub fn recompute_path(&mut self) {
-        if let Some((path, _)) = astar(
-            &self.start,
-            |p| self.successors(p),
-            |p| Self::distance(p, &self.end),
-            |p| *p == self.end,
-        ) {
+        if let Some((path, _)) = self.compute_path(&self.start) {
             self.path = path
         } else {
             self.path = vec![]
         }
+    }
+
+    pub fn compute_path(&self, start: &IVec2) -> Option<(Vec<IVec2>, u32)> {
+        astar(
+            start,
+            |p| self.successors(p),
+            |p| Self::distance(p, &self.end),
+            |p| *p == self.end,
+        )
     }
 }
 

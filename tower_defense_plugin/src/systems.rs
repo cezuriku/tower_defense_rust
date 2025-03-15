@@ -5,6 +5,7 @@ use crate::components::*;
 use crate::events::*;
 use crate::map::Map;
 use crate::resources::*;
+use crate::utils::world_to_grid;
 
 pub fn setup() {}
 
@@ -24,6 +25,30 @@ pub fn move_creeps(mut creeps: Query<(&mut MovingEntity, &mut Transform)>, time:
                     creep.waypoints.pop();
                     delta -= distance;
                 }
+            }
+        }
+    }
+}
+
+pub fn update_creep_paths(
+    mut events: EventReader<MapChangedEvent>,
+    mut creeps: Query<(&Transform, &mut MovingEntity), With<Creep>>,
+    map: Res<Map>,
+) {
+    for _event in events.read() {
+        for (transform, mut moving_entity) in creeps.iter_mut() {
+            let start = world_to_grid(transform.translation);
+            if let Some((new_path, _)) = map.compute_path(&start) {
+                let mut waypoints: Vec<Vec2> = new_path
+                    .iter()
+                    .map(|pos| Vec2::new(pos.x as f32 * 10.0, pos.y as f32 * 10.0))
+                    .rev()
+                    .collect();
+                waypoints.pop();
+
+                moving_entity.waypoints = waypoints;
+            } else {
+                // Do not update the path and let the creep continue on its current path even though it is likely to go through walls
             }
         }
     }

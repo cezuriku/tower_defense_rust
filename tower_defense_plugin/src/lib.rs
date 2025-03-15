@@ -8,6 +8,7 @@ use resources::GameData;
 use systems::*;
 pub mod resources;
 mod systems;
+mod utils;
 
 pub struct TowerDefensePlugin;
 
@@ -30,6 +31,7 @@ impl Plugin for TowerDefensePlugin {
                 move_creeps,
                 handle_turret_placement,
                 shoot_creeps,
+                update_creep_paths,
             ),
         );
     }
