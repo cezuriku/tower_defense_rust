@@ -31,6 +31,6 @@ pub struct Turret {
     pub transform: Transform,
     pub range: f32,
     pub damage: f32,
-    pub fire_rate: f32,
+    pub reload_time: f32,
     pub last_fired: f32,
 }

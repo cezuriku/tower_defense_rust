@@ -59,7 +59,7 @@ pub fn handle_turret_placement(
                 ),
                 range: 25.0,
                 damage: 10.0,
-                fire_rate: 1.0,
+                reload_time: 1.0,
                 last_fired: 0.0,
             },));
 
@@ -88,7 +88,7 @@ pub fn spawn_creeps(
 ) {
     *last_spawn_time += time.delta_secs();
 
-    if *last_spawn_time > 5.0 {
+    if *last_spawn_time > 2.0 {
         *last_spawn_time = 0.0;
 
         let start_pos = map.start;
@@ -109,8 +109,46 @@ pub fn spawn_creeps(
                 start_pos.y as f32 * 10.0,
                 0.0,
             )),
-            Creep { health: 40.0 },
+            Creep { health: 100.0 },
         ));
+    }
+}
+
+// System to shoot creeps within range
+pub fn shoot_creeps(
+    time: Res<Time>,
+    mut turrets: Query<&mut Turret>,
+    mut creeps: Query<(Entity, &mut Creep, &Transform)>,
+    mut commands: Commands,
+) {
+    for mut turret in turrets.iter_mut() {
+        let turret_position = turret.transform.translation.truncate();
+
+        // Update last fired time
+        turret.last_fired += time.delta_secs();
+
+        for (creep_entity, mut creep, creep_transform) in creeps.iter_mut() {
+            let creep_position = creep_transform.translation.truncate();
+            let distance = turret_position.distance(creep_position);
+
+            if distance <= turret.range {
+                // Check if the turret can fire
+                if turret.last_fired >= turret.reload_time {
+                    // Reduce creep health
+                    creep.health -= turret.damage;
+
+                    turret.last_fired = 0.0;
+
+                    // Optionally, handle creep death
+                    if creep.health <= 0.0 {
+                        println!("Creep killed by turret!");
+                        commands.entity(creep_entity).despawn();
+                    } else {
+                        println!("Creep hit by turret! Health: {}", creep.health);
+                    }
+                }
+            }
+        }
     }
 }
 

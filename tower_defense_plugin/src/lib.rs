@@ -23,7 +23,14 @@ impl Plugin for TowerDefensePlugin {
             .insert_resource(GameData::default());
 
         // Add systems
-        app.add_systems(Startup, setup)
-            .add_systems(Update, (spawn_creeps, move_creeps, handle_turret_placement));
+        app.add_systems(Startup, setup).add_systems(
+            Update,
+            (
+                spawn_creeps,
+                move_creeps,
+                handle_turret_placement,
+                shoot_creeps,
+            ),
+        );
     }
 }

@@ -74,7 +74,11 @@ pub fn setup(
             },
         },
     ));
-    commands.spawn((Transform::from_xyz(-45.0, -45.0, 10.0), MapAnchor));
+    commands.spawn((
+        Transform::from_xyz(-45.0, -45.0, 10.0),
+        Visibility::default(),
+        MapAnchor,
+    ));
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(100.0, 100.0))),
         MeshMaterial2d(materials.add(Color::srgb_u8(85, 20, 10))),
