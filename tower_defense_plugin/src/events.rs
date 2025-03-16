@@ -16,3 +16,10 @@ pub struct NewTurretEvent {
 
 #[derive(Event)]
 pub struct MapChangedEvent;
+
+#[derive(Event)]
+pub struct BasicFireEvent {
+    pub origin: IVec2,
+    pub target: Vec2,
+    pub kill: bool,
+}

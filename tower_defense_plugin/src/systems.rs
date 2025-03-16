@@ -148,9 +148,10 @@ pub fn shoot_creeps(
     mut turrets: Query<&mut Turret>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
     mut commands: Commands,
+    mut fire_events: EventWriter<BasicFireEvent>,
 ) {
     for mut turret in turrets.iter_mut() {
-        let turret_position = turret.transform.translation.truncate();
+        let turret_world_position = turret.transform.translation.truncate();
 
         // Update last fired time
         turret.last_fired += time.delta_secs();
@@ -158,7 +159,7 @@ pub fn shoot_creeps(
         if turret.last_fired >= turret.reload_time {
             for (creep_entity, mut creep, creep_transform) in creeps.iter_mut() {
                 let creep_position = creep_transform.translation.truncate();
-                let distance = turret_position.distance(creep_position);
+                let distance = turret_world_position.distance(creep_position);
 
                 if turret.last_fired >= turret.reload_time
                     && distance <= turret.range
@@ -169,13 +170,19 @@ pub fn shoot_creeps(
 
                     turret.last_fired = 0.0;
 
-                    // Optionally, handle creep death
-                    if creep.health <= 0.0 {
+                    let kill: bool = creep.health <= 0.0;
+                    if kill {
                         println!("Creep killed by turret!");
                         commands.entity(creep_entity).despawn_recursive();
                     } else {
                         println!("Creep hit by turret! Health: {}", creep.health);
                     }
+
+                    fire_events.send(BasicFireEvent {
+                        origin: turret.position,
+                        target: creep_position,
+                        kill,
+                    });
                 }
             }
         }

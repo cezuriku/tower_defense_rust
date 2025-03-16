@@ -7,6 +7,7 @@ use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
 use tower_defense_plugin::components::TurretType;
+use tower_defense_plugin::events::BasicFireEvent;
 use tower_defense_plugin::events::NewTurretEvent;
 use tower_defense_plugin::events::PlaceTurretEvent;
 use tower_defense_plugin::*;
@@ -16,10 +17,12 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     map: Res<Map>,
+    asset_server: Res<AssetServer>,
 ) {
     commands.insert_resource(TowerAssets {
         mesh: meshes.add(Rectangle::new(10.0, 10.0)),
         material: materials.add(Color::BLACK),
+        fire_image: asset_server.load("shotThin.png"),
     });
 
     commands.insert_resource(CreepAssets {
@@ -236,6 +239,46 @@ pub fn health_bar_system(
             if let Ok(mut sprite) = q_health_bar.get_mut(child) {
                 sprite.custom_size = Some(Vec2::new(1.5, creep.health / creep.max_health * 8.0));
             }
+        }
+    }
+}
+
+pub fn handle_fire_event(
+    mut commands: Commands,
+    mut fire_events: EventReader<BasicFireEvent>,
+    tower_assets: Res<TowerAssets>,
+    map_anchor_query: Query<(Entity, &MapAnchor)>,
+) {
+    let (anchor, _) = map_anchor_query.single();
+    for event in fire_events.read() {
+        let direction = (event.target - grid_to_world(event.origin)).normalize();
+        let angle = direction.y.atan2(direction.x);
+
+        let entity = commands
+            .spawn(FireBundle {
+                fire: Fire { time_left: 0.1 },
+                sprite: Sprite {
+                    image: tower_assets.fire_image.clone(),
+                    custom_size: Some(Vec2::new(3.5, 1.5)),
+                    anchor: Anchor::CenterLeft,
+                    ..Default::default()
+                },
+                transform: Transform {
+                    translation: grid_to_world(event.origin).extend(100.0),
+                    rotation: Quat::from_rotation_z(angle),
+                    ..Default::default()
+                },
+            })
+            .id();
+        commands.entity(anchor).add_child(entity);
+    }
+}
+
+pub fn update_fire(mut commands: Commands, mut query: Query<(Entity, &mut Fire)>, time: Res<Time>) {
+    for (entity, mut fire) in query.iter_mut() {
+        fire.time_left -= time.delta_secs();
+        if fire.time_left <= 0.0 {
+            commands.entity(entity).despawn();
         }
     }
 }

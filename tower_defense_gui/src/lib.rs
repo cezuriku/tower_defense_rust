@@ -22,6 +22,8 @@ impl Plugin for TowerDefenseGui {
                 new_turrets,
                 handle_new_creep,
                 health_bar_system,
+                handle_fire_event,
+                update_fire,
             ),
         );
     }

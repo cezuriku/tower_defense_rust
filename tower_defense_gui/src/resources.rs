@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub struct TowerAssets {
     pub mesh: Handle<Mesh>,
     pub material: Handle<ColorMaterial>,
+    pub fire_image: Handle<Image>,
 }
 
 #[derive(Resource)]
