@@ -25,9 +25,9 @@ pub fn setup(
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
 
     commands.insert_resource(TowerAssets {
-        mesh: meshes.add(Rectangle::new(10.0, 10.0)),
-        material: materials.add(Color::BLACK),
-        fire_image: asset_server.load("shotThin.png"),
+        mesh: meshes.add(Circle::new(4.5)),
+        material: materials.add(Color::srgb(0.5, 0.5, 0.5)),
+        fire_image: asset_server.load("shotLarge.png"),
         smoke_image: texture,
         smoke_atlas_layout: texture_atlas_layout,
     });
