@@ -18,11 +18,18 @@ pub fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     map: Res<Map>,
     asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
+    let texture = asset_server.load("smoke05.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(64), 11, 15, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+
     commands.insert_resource(TowerAssets {
         mesh: meshes.add(Rectangle::new(10.0, 10.0)),
         material: materials.add(Color::BLACK),
         fire_image: asset_server.load("shotThin.png"),
+        smoke_image: texture,
+        smoke_atlas_layout: texture_atlas_layout,
     });
 
     commands.insert_resource(CreepAssets {
@@ -254,7 +261,7 @@ pub fn handle_fire_event(
         let direction = (event.target - grid_to_world(event.origin)).normalize();
         let angle = direction.y.atan2(direction.x);
 
-        let entity = commands
+        let fire = commands
             .spawn(FireBundle {
                 fire: Fire { time_left: 0.1 },
                 sprite: Sprite {
@@ -270,7 +277,34 @@ pub fn handle_fire_event(
                 },
             })
             .id();
-        commands.entity(anchor).add_child(entity);
+
+        let animation_indices = AnimationIndices {
+            first: 66,
+            last: 66 + 10,
+        };
+
+        let smoke = commands
+            .spawn((
+                Sprite {
+                    custom_size: Some(Vec2::new(8.0, 8.0)),
+                    ..Sprite::from_atlas_image(
+                        tower_assets.smoke_image.clone(),
+                        TextureAtlas {
+                            layout: tower_assets.smoke_atlas_layout.clone(),
+                            index: animation_indices.first,
+                        },
+                    )
+                },
+                Transform {
+                    translation: event.target.extend(100.0),
+                    ..Default::default()
+                },
+                animation_indices,
+                AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+            ))
+            .id();
+        commands.entity(anchor).add_child(fire);
+        commands.entity(anchor).add_child(smoke);
     }
 }
 
@@ -279,6 +313,21 @@ pub fn update_fire(mut commands: Commands, mut query: Query<(Entity, &mut Fire)>
         fire.time_left -= time.delta_secs();
         if fire.time_left <= 0.0 {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+pub fn animate_sprite(
+    mut commands: Commands,
+    mut query: Query<(Entity, &AnimationIndices, &mut Sprite)>,
+) {
+    for (entity, indices, mut sprite) in &mut query {
+        if let Some(atlas) = &mut sprite.texture_atlas {
+            if atlas.index != indices.last {
+                atlas.index += 1;
+            } else {
+                commands.entity(entity).despawn();
+            };
         }
     }
 }

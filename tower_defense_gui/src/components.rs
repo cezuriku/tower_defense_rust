@@ -23,3 +23,12 @@ pub struct FireBundle {
     pub sprite: Sprite,
     pub transform: Transform,
 }
+
+#[derive(Component)]
+pub struct AnimationIndices {
+    pub(crate) first: usize,
+    pub(crate) last: usize,
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(pub Timer);

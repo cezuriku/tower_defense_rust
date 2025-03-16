@@ -24,6 +24,7 @@ impl Plugin for TowerDefenseGui {
                 health_bar_system,
                 handle_fire_event,
                 update_fire,
+                animate_sprite,
             ),
         );
     }
