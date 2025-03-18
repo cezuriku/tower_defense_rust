@@ -11,9 +11,17 @@ mod systems;
 mod utils;
 pub use utils::*;
 
-pub struct TowerDefensePlugin;
+pub struct TowerDefensePlugin<T>
+where
+    T: MapTrait + Send + Sync + 'static,
+{
+    pub _marker: std::marker::PhantomData<T>,
+}
 
-impl Plugin for TowerDefensePlugin {
+impl<T> Plugin for TowerDefensePlugin<T>
+where
+    T: MapTrait + Send + Sync + 'static,
+{
     fn build(&self, app: &mut App) {
         // Add events
         app.add_event::<events::PlaceTurretEvent>()
@@ -22,16 +30,15 @@ impl Plugin for TowerDefensePlugin {
             .add_event::<events::MapChangedEvent>();
 
         // Insert resources
-        app.insert_resource(Map::<FreeMap>::new(FreeMap::default()))
-            .insert_resource(GameData::default());
+        app.insert_resource(GameData::default());
 
         // Add systems
         app.add_systems(Startup, setup).add_systems(
             Update,
             (
-                spawn_creeps::<FreeMap>,
+                spawn_creeps::<T>,
                 move_creeps,
-                handle_turret_placement::<FreeMap>,
+                handle_turret_placement::<T>,
                 shoot_creeps,
                 update_creep_paths,
             ),

@@ -14,7 +14,7 @@ pub trait MapTrait {
     fn get_end(&self) -> IVec2;
 }
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct Map<T: MapTrait> {
     inner_map: T,
 }
