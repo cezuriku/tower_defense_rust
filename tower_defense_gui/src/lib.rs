@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use systems::*;
+use tower_defense_plugin::FreeMap;
 
 mod components;
 mod resources;
@@ -15,11 +16,11 @@ impl Plugin for TowerDefenseGui {
         app.insert_resource(ClearColor(Color::BLACK));
 
         // Add systems
-        app.add_systems(Startup, setup).add_systems(
+        app.add_systems(Startup, setup::<FreeMap>).add_systems(
             Update,
             (
                 mouse_input,
-                new_turrets,
+                new_turrets::<FreeMap>,
                 handle_new_creep,
                 health_bar_system,
                 handle_fire_event,

@@ -12,14 +12,16 @@ use tower_defense_plugin::events::NewTurretEvent;
 use tower_defense_plugin::events::PlaceTurretEvent;
 use tower_defense_plugin::*;
 
-pub fn setup(
+pub fn setup<T>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    map: Res<Map>,
+    map: Res<Map<T>>,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) {
+) where
+    T: MapTrait + Send + Sync + 'static,
+{
     let texture = asset_server.load("smoke05.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(64), 11, 15, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
@@ -65,8 +67,8 @@ pub fn setup(
         Mesh2d(path_assets.start_mesh.clone()),
         MeshMaterial2d(path_assets.start_material.clone()),
         Transform::from_xyz(
-            map.start.x as f32 * 10.0 - 45.0,
-            map.start.y as f32 * 10.0 - 45.0,
+            map.get_start().x as f32 * 10.0 - 45.0,
+            map.get_start().y as f32 * 10.0 - 45.0,
             1.0,
         ),
     ));
@@ -75,8 +77,8 @@ pub fn setup(
         Mesh2d(path_assets.end_mesh.clone()),
         MeshMaterial2d(path_assets.end_material.clone()),
         Transform::from_xyz(
-            map.end.x as f32 * 10.0 - 45.0,
-            map.end.y as f32 * 10.0 - 45.0,
+            map.get_end().x as f32 * 10.0 - 45.0,
+            map.get_end().y as f32 * 10.0 - 45.0,
             1.0,
         ),
     ));
@@ -144,15 +146,17 @@ pub fn mouse_input(
     }
 }
 
-pub fn new_turrets(
+pub fn new_turrets<T>(
     mut commands: Commands,
     tower_assets: Res<TowerAssets>,
     mut events: EventReader<NewTurretEvent>,
     q_path: Query<Entity, With<Path>>,
     path_assets: Res<PathAssets>,
-    map: Res<Map>,
+    map: Res<Map<T>>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
-) {
+) where
+    T: MapTrait + Send + Sync + 'static,
+{
     let mut should_update_path = false;
     let map_anchor = map_anchor_query.single();
     let grid_origin = map_anchor.translation.truncate();
@@ -171,7 +175,7 @@ pub fn new_turrets(
     }
     if should_update_path {
         q_path.iter().for_each(|e| commands.entity(e).despawn());
-        draw_path(
+        draw_path::<T>(
             &mut commands,
             &path_assets.mesh,
             &path_assets.material,
@@ -181,14 +185,16 @@ pub fn new_turrets(
     }
 }
 
-pub fn draw_path(
+pub fn draw_path<T>(
     commands: &mut Commands,
     mesh: &Handle<Mesh>,
     material: &Handle<ColorMaterial>,
-    map: &Res<Map>,
+    map: &Res<Map<T>>,
     grid_origin: Vec2,
-) {
-    for pos in &map.path[1..map.path.len() - 1] {
+) where
+    T: MapTrait + Send + Sync + 'static,
+{
+    for pos in &map.get_path()[1..map.get_path().len() - 1] {
         commands.spawn((
             Mesh2d(mesh.clone()),
             MeshMaterial2d(material.clone()),

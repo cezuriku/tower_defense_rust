@@ -22,16 +22,16 @@ impl Plugin for TowerDefensePlugin {
             .add_event::<events::MapChangedEvent>();
 
         // Insert resources
-        app.insert_resource(Map::default())
+        app.insert_resource(Map::<FreeMap>::new(FreeMap::default()))
             .insert_resource(GameData::default());
 
         // Add systems
         app.add_systems(Startup, setup).add_systems(
             Update,
             (
-                spawn_creeps,
+                spawn_creeps::<FreeMap>,
                 move_creeps,
-                handle_turret_placement,
+                handle_turret_placement::<FreeMap>,
                 shoot_creeps,
                 update_creep_paths,
             ),
