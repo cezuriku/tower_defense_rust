@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 use bevy::{time::Time, transform::components::Transform};
 
-use crate::events::*;
-use crate::map::FreeMap;
 use crate::resources::*;
 use crate::utils::world_to_grid;
+use crate::{DynamicMap, events::*};
 use crate::{Map, components::*};
 
 pub fn setup() {}
@@ -30,10 +29,10 @@ pub fn move_creeps(mut creeps: Query<(&mut MovingEntity, &mut Transform)>, time:
     }
 }
 
-pub fn update_creep_paths(
+pub fn update_creep_paths<T: Resource + DynamicMap>(
     mut events: EventReader<MapChangedEvent>,
     mut creeps: Query<(&Transform, &mut MovingEntity), With<Creep>>,
-    map: Res<FreeMap>,
+    map: Res<T>,
 ) {
     for _event in events.read() {
         for (transform, mut moving_entity) in creeps.iter_mut() {

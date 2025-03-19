@@ -33,7 +33,33 @@ impl Plugin for TowerDefensePlugin {
                 move_creeps,
                 handle_turret_placement::<FreeMap>,
                 shoot_creeps,
-                update_creep_paths,
+                update_creep_paths::<FreeMap>,
+            ),
+        );
+    }
+}
+pub struct TowerDefensePluginSimpleMap;
+
+impl Plugin for TowerDefensePluginSimpleMap {
+    fn build(&self, app: &mut App) {
+        // Add events
+        app.add_event::<events::PlaceTurretEvent>()
+            .add_event::<events::NewTurretEvent>()
+            .add_event::<events::BasicFireEvent>()
+            .add_event::<events::MapChangedEvent>();
+
+        // Insert resources
+        app.insert_resource(SimpleMap::default())
+            .insert_resource(GameData::default());
+
+        // Add systems
+        app.add_systems(Startup, setup).add_systems(
+            Update,
+            (
+                spawn_creeps::<SimpleMap>,
+                move_creeps,
+                handle_turret_placement::<SimpleMap>,
+                shoot_creeps,
             ),
         );
     }

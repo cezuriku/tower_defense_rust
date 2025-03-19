@@ -8,6 +8,7 @@ use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
 use tower_defense_plugin::components::TurretType;
 use tower_defense_plugin::events::BasicFireEvent;
+use tower_defense_plugin::events::MapChangedEvent;
 use tower_defense_plugin::events::NewTurretEvent;
 use tower_defense_plugin::events::PlaceTurretEvent;
 use tower_defense_plugin::*;
@@ -146,18 +147,12 @@ pub fn mouse_input(
     }
 }
 
-pub fn new_turrets<T>(
+pub fn new_turrets(
     mut commands: Commands,
     tower_assets: Res<TowerAssets>,
     mut events: EventReader<NewTurretEvent>,
-    q_path: Query<Entity, With<Path>>,
-    path_assets: Res<PathAssets>,
-    map: Res<T>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
-) where
-    T: Resource + Map,
-{
-    let mut should_update_path = false;
+) {
     let map_anchor = map_anchor_query.single();
     let grid_origin = map_anchor.translation.truncate();
 
@@ -171,11 +166,22 @@ pub fn new_turrets<T>(
                 50.0,
             ),
         ));
-        should_update_path = true;
     }
-    if should_update_path {
+}
+
+pub fn update_path(
+    mut commands: Commands,
+    q_path: Query<Entity, With<Path>>,
+    path_assets: Res<PathAssets>,
+    map: Res<FreeMap>,
+    map_anchor_query: Query<&Transform, With<MapAnchor>>,
+    mut events: EventReader<MapChangedEvent>,
+) {
+    if events.read().len() != 0 {
+        let map_anchor = map_anchor_query.single();
+        let grid_origin = map_anchor.translation.truncate();
         q_path.iter().for_each(|e| commands.entity(e).despawn());
-        draw_path::<T>(
+        draw_path::<FreeMap>(
             &mut commands,
             &path_assets.mesh,
             &path_assets.material,
