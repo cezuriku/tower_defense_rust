@@ -13,22 +13,13 @@ impl Plugin for TowerDefenseGui {
         // Add events
 
         // Insert resources
-        app.insert_resource(ClearColor(Color::BLACK));
+        insert_common_resources(app);
 
         // Add systems
-        app.add_systems(Startup, setup::<FreeMap>).add_systems(
-            Update,
-            (
-                mouse_input,
-                new_turrets,
-                update_path,
-                handle_new_creep,
-                health_bar_system,
-                handle_fire_event,
-                update_fire,
-                animate_sprite,
-            ),
-        );
+        app.add_systems(Startup, setup::<FreeMap>);
+        // Systems at update
+        insert_common_systems(app);
+        app.add_systems(Update, update_path);
     }
 }
 
@@ -39,20 +30,29 @@ impl Plugin for TowerDefenseGuiSimpleMap {
         // Add events
 
         // Insert resources
-        app.insert_resource(ClearColor(Color::BLACK));
+        insert_common_resources(app);
 
         // Add systems
-        app.add_systems(Startup, setup::<SimpleMap>).add_systems(
-            Update,
-            (
-                mouse_input,
-                new_turrets,
-                handle_new_creep,
-                health_bar_system,
-                handle_fire_event,
-                update_fire,
-                animate_sprite,
-            ),
-        );
+        app.add_systems(Startup, setup::<SimpleMap>);
+        insert_common_systems(app);
     }
+}
+
+fn insert_common_systems(app: &mut App) {
+    app.add_systems(
+        Update,
+        (
+            mouse_input,
+            new_turrets,
+            handle_new_creep,
+            health_bar_system,
+            handle_fire_event,
+            update_fire,
+            animate_sprite,
+        ),
+    );
+}
+
+fn insert_common_resources(app: &mut App) {
+    app.insert_resource(ClearColor(Color::BLACK));
 }

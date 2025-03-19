@@ -16,23 +16,19 @@ pub struct TowerDefensePlugin;
 impl Plugin for TowerDefensePlugin {
     fn build(&self, app: &mut App) {
         // Add events
-        app.add_event::<events::PlaceTurretEvent>()
-            .add_event::<events::NewTurretEvent>()
-            .add_event::<events::BasicFireEvent>()
-            .add_event::<events::MapChangedEvent>();
+        insert_common_events(app);
 
         // Insert resources
-        app.insert_resource(FreeMap::default())
-            .insert_resource(GameData::default());
+        insert_common_resources(app);
+        app.insert_resource(FreeMap::default());
 
         // Add systems
-        app.add_systems(Startup, setup).add_systems(
+        insert_common_systems(app);
+        app.add_systems(
             Update,
             (
                 spawn_creeps::<FreeMap>,
-                move_creeps,
                 handle_turret_placement::<FreeMap>,
-                shoot_creeps,
                 update_creep_paths::<FreeMap>,
             ),
         );
@@ -43,24 +39,36 @@ pub struct TowerDefensePluginSimpleMap;
 impl Plugin for TowerDefensePluginSimpleMap {
     fn build(&self, app: &mut App) {
         // Add events
-        app.add_event::<events::PlaceTurretEvent>()
-            .add_event::<events::NewTurretEvent>()
-            .add_event::<events::BasicFireEvent>()
-            .add_event::<events::MapChangedEvent>();
+        insert_common_events(app);
 
         // Insert resources
-        app.insert_resource(SimpleMap::default())
-            .insert_resource(GameData::default());
+        insert_common_resources(app);
+        app.insert_resource(SimpleMap::default());
 
         // Add systems
-        app.add_systems(Startup, setup).add_systems(
+        insert_common_systems(app);
+        app.add_systems(
             Update,
             (
                 spawn_creeps::<SimpleMap>,
-                move_creeps,
                 handle_turret_placement::<SimpleMap>,
-                shoot_creeps,
             ),
         );
     }
+}
+
+fn insert_common_systems(app: &mut App) {
+    app.add_systems(Startup, setup);
+    app.add_systems(Update, (move_creeps, shoot_creeps));
+}
+
+fn insert_common_resources(app: &mut App) {
+    app.insert_resource(GameData::default());
+}
+
+fn insert_common_events(app: &mut App) {
+    app.add_event::<events::PlaceTurretEvent>()
+        .add_event::<events::NewTurretEvent>()
+        .add_event::<events::BasicFireEvent>()
+        .add_event::<events::MapChangedEvent>();
 }
