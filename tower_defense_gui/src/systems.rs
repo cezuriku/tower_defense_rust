@@ -1,7 +1,9 @@
 use crate::components::*;
 use crate::resources::*;
+use bevy::asset::RenderAssetUsages;
 use bevy::math::vec2;
 use bevy::render::camera::ScalingMode;
+use bevy::render::mesh::PrimitiveTopology;
 use bevy::sprite::Anchor;
 use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
@@ -56,12 +58,19 @@ pub fn setup<T>(
         end_material: materials.add(Color::srgb_u8(165, 0, 0)),
     };
 
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(100.0, 100.0))),
+        MeshMaterial2d(materials.add(Color::srgb_u8(85, 20, 10))),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+    ));
+
     draw_path(
         &mut commands,
         &path_assets.mesh,
         &path_assets.material,
         &map,
         Vec2::new(-45.0, -45.0),
+        meshes,
     );
 
     commands.spawn((
@@ -104,11 +113,6 @@ pub fn setup<T>(
         Transform::from_xyz(-45.0, -45.0, 10.0),
         Visibility::default(),
         MapAnchor,
-    ));
-    commands.spawn((
-        Mesh2d(meshes.add(Rectangle::new(100.0, 100.0))),
-        MeshMaterial2d(materials.add(Color::srgb_u8(85, 20, 10))),
-        Transform::from_xyz(0.0, 0.0, 0.0),
     ));
 }
 
@@ -176,6 +180,7 @@ pub fn update_path(
     map: Res<FreeMap>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
     mut events: EventReader<MapChangedEvent>,
+    meshes: ResMut<Assets<Mesh>>,
 ) {
     if events.read().len() != 0 {
         let map_anchor = map_anchor_query.single();
@@ -187,6 +192,7 @@ pub fn update_path(
             &path_assets.material,
             &map,
             grid_origin,
+            meshes,
         );
     }
 }
@@ -197,6 +203,7 @@ pub fn draw_path<T>(
     material: &Handle<ColorMaterial>,
     map: &Res<T>,
     grid_origin: Vec2,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) where
     T: Resource + Map,
 {
@@ -212,6 +219,31 @@ pub fn draw_path<T>(
             Path {},
         ));
     }
+    let points: Vec<Vec2> = map
+        .get_path()
+        .iter()
+        .map(|pos| {
+            Vec2::new(
+                (pos.x as f32) * 10.0 + grid_origin.x,
+                (pos.y as f32) * 10.0 + grid_origin.y,
+            )
+        })
+        .collect();
+
+    let mut mesh = Mesh::new(PrimitiveTopology::LineStrip, RenderAssetUsages::all());
+    let mut vertices = Vec::new();
+    for point in &points {
+        vertices.push([point.x, point.y, 0.0]);
+    }
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+    let mesh_handle = meshes.add(mesh);
+
+    commands.spawn((
+        Mesh2d(mesh_handle.clone()),
+        MeshMaterial2d(material.clone()),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        Path {},
+    ));
 }
 
 pub fn handle_new_creep(
