@@ -66,7 +66,7 @@ pub fn handle_turret_placement<T>(
     for event in events.read() {
         let cost = match event.turret_type {
             TurretType::Basic => 50,
-            TurretType::Advanced => 100,
+            TurretType::Bomb => 100,
         };
 
         if game_data.gold >= cost && map.is_turret_possible(&event.position) {
@@ -171,7 +171,10 @@ pub fn shoot_creeps(
                     // Reduce creep health
                     creep.health -= turret.damage;
 
-                    turret.last_fired = 0.0;
+                    if turret.turret_type == TurretType::Basic {
+                        // If Basic reset last fired to shot only once
+                        turret.last_fired = 0.0;
+                    }
 
                     let kill: bool = creep.health <= 0.0;
                     if kill {
@@ -188,6 +191,7 @@ pub fn shoot_creeps(
                     });
                 }
             }
+            turret.last_fired = 0.0;
         }
     }
 }

@@ -22,7 +22,7 @@ pub struct MovingEntity {
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TurretType {
     Basic,
-    Advanced,
+    Bomb,
 }
 
 #[derive(Component)]

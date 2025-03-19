@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub struct TowerAssets {
     pub mesh: Handle<Mesh>,
     pub material: Handle<ColorMaterial>,
+    pub bomb_material: Handle<ColorMaterial>,
     pub fire_image: Handle<Image>,
     pub smoke_image: Handle<Image>,
     pub smoke_atlas_layout: Handle<TextureAtlasLayout>,

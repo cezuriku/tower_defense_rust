@@ -32,6 +32,7 @@ pub fn setup<T>(
     commands.insert_resource(TowerAssets {
         mesh: meshes.add(Circle::new(4.5)),
         material: materials.add(Color::srgb(0.5, 0.5, 0.5)),
+        bomb_material: materials.add(Color::srgb(1.0, 0.9, 0.8)),
         fire_image: asset_server.load("shotLarge.png"),
         smoke_image: texture,
         smoke_atlas_layout: texture_atlas_layout,
@@ -123,7 +124,14 @@ pub fn mouse_input(
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
     mut turret_events: EventWriter<PlaceTurretEvent>,
 ) {
+    let mut turret_type: Option<TurretType> = None;
     if buttons.just_pressed(MouseButton::Left) {
+        turret_type = Some(TurretType::Basic);
+    } else if buttons.just_pressed(MouseButton::Right) {
+        turret_type = Some(TurretType::Bomb);
+    }
+
+    if let Some(turret_type) = turret_type {
         let (camera, camera_transform) = q_camera.single();
         if let Some(cursor) = q_windows.single().cursor_position() {
             if let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor) {
@@ -143,7 +151,7 @@ pub fn mouse_input(
                 println!("placing turret at {:?}", pos);
 
                 turret_events.send(PlaceTurretEvent {
-                    turret_type: TurretType::Basic,
+                    turret_type,
                     position: pos,
                 });
             }
@@ -161,15 +169,30 @@ pub fn new_turrets(
     let grid_origin = map_anchor.translation.truncate();
 
     for event in events.read() {
-        commands.spawn((
-            Mesh2d(tower_assets.mesh.clone()),
-            MeshMaterial2d(tower_assets.material.clone()),
-            Transform::from_xyz(
-                (event.position.x as f32) * 10.0 + grid_origin.x,
-                (event.position.y as f32) * 10.0 + grid_origin.y,
-                50.0,
-            ),
-        ));
+        match event.turret_type {
+            TurretType::Basic => {
+                commands.spawn((
+                    Mesh2d(tower_assets.mesh.clone()),
+                    MeshMaterial2d(tower_assets.material.clone()),
+                    Transform::from_xyz(
+                        (event.position.x as f32) * 10.0 + grid_origin.x,
+                        (event.position.y as f32) * 10.0 + grid_origin.y,
+                        50.0,
+                    ),
+                ));
+            }
+            TurretType::Bomb => {
+                commands.spawn((
+                    Mesh2d(tower_assets.mesh.clone()),
+                    MeshMaterial2d(tower_assets.bomb_material.clone()),
+                    Transform::from_xyz(
+                        (event.position.x as f32) * 10.0 + grid_origin.x,
+                        (event.position.y as f32) * 10.0 + grid_origin.y,
+                        50.0,
+                    ),
+                ));
+            }
+        }
     }
 }
 
