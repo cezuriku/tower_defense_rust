@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use bevy::{time::Time, transform::components::Transform};
 
+use crate::events::*;
 use crate::map::FreeMap;
 use crate::resources::*;
 use crate::utils::world_to_grid;
-use crate::{Map, events::*};
-use crate::{MapTrait, components::*};
+use crate::{Map, components::*};
 
 pub fn setup() {}
 
@@ -33,7 +33,7 @@ pub fn move_creeps(mut creeps: Query<(&mut MovingEntity, &mut Transform)>, time:
 pub fn update_creep_paths(
     mut events: EventReader<MapChangedEvent>,
     mut creeps: Query<(&Transform, &mut MovingEntity), With<Creep>>,
-    map: Res<Map<FreeMap>>,
+    map: Res<FreeMap>,
 ) {
     for _event in events.read() {
         for (transform, mut moving_entity) in creeps.iter_mut() {
@@ -54,14 +54,16 @@ pub fn update_creep_paths(
     }
 }
 
-pub fn handle_turret_placement<T: MapTrait + Send + Sync + 'static>(
+pub fn handle_turret_placement<T>(
     mut commands: Commands,
     mut events: EventReader<PlaceTurretEvent>,
     mut game_data: ResMut<GameData>,
-    mut map: ResMut<Map<T>>,
+    mut map: ResMut<T>,
     mut new_turret_writer: EventWriter<NewTurretEvent>,
     mut map_changed_writer: EventWriter<MapChangedEvent>,
-) {
+) where
+    T: Resource + Map,
+{
     for event in events.read() {
         let cost = match event.turret_type {
             TurretType::Basic => 50,
@@ -109,9 +111,9 @@ pub fn spawn_creeps<T>(
     mut commands: Commands,
     time: Res<Time>,
     mut last_spawn_time: Local<f32>,
-    map: Res<Map<T>>,
+    map: Res<T>,
 ) where
-    T: MapTrait + Send + Sync + 'static,
+    T: Resource + Map,
 {
     *last_spawn_time += time.delta_secs();
 

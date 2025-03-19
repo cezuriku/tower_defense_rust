@@ -22,7 +22,7 @@ impl Plugin for TowerDefensePlugin {
             .add_event::<events::MapChangedEvent>();
 
         // Insert resources
-        app.insert_resource(Map::<FreeMap>::new(FreeMap::default()))
+        app.insert_resource(FreeMap::default())
             .insert_resource(GameData::default());
 
         // Add systems

@@ -4,7 +4,7 @@ use pathfinding::prelude::astar;
 pub const GRID_WIDTH: usize = 10;
 pub const GRID_HEIGHT: usize = 10;
 
-pub trait MapTrait {
+pub trait Map {
     fn place_tower(&mut self, pos: &IVec2) -> bool;
     fn remove_tower(&mut self, pos: &IVec2);
     fn is_turret_possible(&self, pos: &IVec2) -> bool;
@@ -15,46 +15,6 @@ pub trait MapTrait {
 }
 
 #[derive(Resource)]
-pub struct Map<T: MapTrait> {
-    inner_map: T,
-}
-
-impl<T: MapTrait> MapTrait for Map<T> {
-    fn place_tower(&mut self, pos: &IVec2) -> bool {
-        self.inner_map.place_tower(pos)
-    }
-
-    fn remove_tower(&mut self, pos: &IVec2) {
-        self.inner_map.remove_tower(pos)
-    }
-
-    fn is_turret_possible(&self, pos: &IVec2) -> bool {
-        self.inner_map.is_turret_possible(pos)
-    }
-
-    fn compute_path(&self, start: &IVec2) -> Option<(Vec<IVec2>, u32)> {
-        self.inner_map.compute_path(start)
-    }
-
-    fn get_path(&self) -> &Vec<IVec2> {
-        self.inner_map.get_path()
-    }
-
-    fn get_start(&self) -> IVec2 {
-        self.inner_map.get_start()
-    }
-
-    fn get_end(&self) -> IVec2 {
-        self.inner_map.get_end()
-    }
-}
-
-impl<T: MapTrait> Map<T> {
-    pub fn new(inner_map: T) -> Self {
-        Map { inner_map }
-    }
-}
-
 pub struct FreeMap {
     pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
     pub start: IVec2,
@@ -84,7 +44,7 @@ impl Default for FreeMap {
     }
 }
 
-impl MapTrait for FreeMap {
+impl Map for FreeMap {
     fn place_tower(&mut self, pos: &IVec2) -> bool {
         if !self.is_empty(pos) {
             return false;
