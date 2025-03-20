@@ -59,7 +59,15 @@ impl Plugin for TowerDefensePluginSimpleMap {
 
 fn insert_common_systems(app: &mut App) {
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (move_creeps, shoot_creeps));
+    app.add_systems(
+        Update,
+        (
+            move_creeps,
+            shoot_creeps,
+            move_follower_bullets,
+            bullet_thrower_system,
+        ),
+    );
 }
 
 fn insert_common_resources(app: &mut App) {

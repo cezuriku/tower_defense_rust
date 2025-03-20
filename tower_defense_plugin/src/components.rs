@@ -23,6 +23,7 @@ pub struct MovingEntity {
 pub enum TurretType {
     Basic,
     Bomb,
+    Follower,
 }
 
 #[derive(Component)]
@@ -34,4 +35,17 @@ pub struct Turret {
     pub damage: f32,
     pub reload_time: f32,
     pub last_fired: f32,
+}
+
+#[derive(Component)]
+pub struct BulletThrower {
+    pub speed: f32,
+}
+
+#[derive(Component)]
+pub struct FollowerBullet {
+    pub direction: Vec2,
+    pub target: Entity,
+    pub damage: f32,
+    pub speed: f32,
 }

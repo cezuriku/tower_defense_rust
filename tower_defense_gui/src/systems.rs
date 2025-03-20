@@ -8,6 +8,7 @@ use bevy::sprite::Anchor;
 use bevy::window::PrimaryWindow;
 use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
+use tower_defense_plugin::components::FollowerBullet;
 use tower_defense_plugin::components::TurretType;
 use tower_defense_plugin::events::BasicFireEvent;
 use tower_defense_plugin::events::MapChangedEvent;
@@ -33,9 +34,15 @@ pub fn setup<T>(
         mesh: meshes.add(Circle::new(4.5)),
         material: materials.add(Color::srgb(0.5, 0.5, 0.5)),
         bomb_material: materials.add(Color::srgb(1.0, 0.9, 0.8)),
+        follower_material: materials.add(Color::srgb(1.0, 0.5, 0.8)),
         fire_image: asset_server.load("shotLarge.png"),
         smoke_image: texture,
         smoke_atlas_layout: texture_atlas_layout,
+    });
+
+    commands.insert_resource(BulletAssets {
+        mesh: meshes.add(Circle::new(1.0)),
+        material: materials.add(Color::srgb(0.9, 0.4, 0.7)),
     });
 
     commands.insert_resource(CreepAssets {
@@ -128,6 +135,8 @@ pub fn mouse_input(
     if buttons.just_pressed(MouseButton::Left) {
         turret_type = Some(TurretType::Basic);
     } else if buttons.just_pressed(MouseButton::Right) {
+        turret_type = Some(TurretType::Follower);
+    } else if buttons.just_pressed(MouseButton::Middle) {
         turret_type = Some(TurretType::Bomb);
     }
 
@@ -169,28 +178,31 @@ pub fn new_turrets(
     let grid_origin = map_anchor.translation.truncate();
 
     for event in events.read() {
+        let turret_id = commands
+            .spawn((
+                Mesh2d(tower_assets.mesh.clone()),
+                Transform::from_xyz(
+                    (event.position.x as f32) * 10.0 + grid_origin.x,
+                    (event.position.y as f32) * 10.0 + grid_origin.y,
+                    50.0,
+                ),
+            ))
+            .id();
         match event.turret_type {
             TurretType::Basic => {
-                commands.spawn((
-                    Mesh2d(tower_assets.mesh.clone()),
-                    MeshMaterial2d(tower_assets.material.clone()),
-                    Transform::from_xyz(
-                        (event.position.x as f32) * 10.0 + grid_origin.x,
-                        (event.position.y as f32) * 10.0 + grid_origin.y,
-                        50.0,
-                    ),
-                ));
+                commands
+                    .entity(turret_id)
+                    .insert(MeshMaterial2d(tower_assets.material.clone()));
             }
             TurretType::Bomb => {
-                commands.spawn((
-                    Mesh2d(tower_assets.mesh.clone()),
-                    MeshMaterial2d(tower_assets.bomb_material.clone()),
-                    Transform::from_xyz(
-                        (event.position.x as f32) * 10.0 + grid_origin.x,
-                        (event.position.y as f32) * 10.0 + grid_origin.y,
-                        50.0,
-                    ),
-                ));
+                commands
+                    .entity(turret_id)
+                    .insert(MeshMaterial2d(tower_assets.bomb_material.clone()));
+            }
+            TurretType::Follower => {
+                commands
+                    .entity(turret_id)
+                    .insert(MeshMaterial2d(tower_assets.follower_material.clone()));
             }
         }
     }
@@ -301,6 +313,22 @@ pub fn handle_new_creep(
             ))
             .id();
         commands.entity(creep).add_child(inner_health_bar);
+    }
+}
+
+pub fn handle_new_bullets(
+    mut commands: Commands,
+    mut query: Query<Entity, Added<FollowerBullet>>,
+    map_anchor_query: Query<(Entity, &MapAnchor)>,
+    bullet_assets: Res<BulletAssets>,
+) {
+    let (anchor, _) = map_anchor_query.single();
+    for entity in &mut query {
+        commands.entity(anchor).add_child(entity);
+        commands.entity(entity).insert_if_new((
+            Mesh2d(bullet_assets.mesh.clone()),
+            MeshMaterial2d(bullet_assets.material.clone()),
+        ));
     }
 }
 

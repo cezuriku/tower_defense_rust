@@ -67,6 +67,7 @@ pub fn handle_turret_placement<T>(
         let cost = match event.turret_type {
             TurretType::Basic => 50,
             TurretType::Bomb => 100,
+            TurretType::Follower => 75,
         };
 
         if game_data.gold >= cost && map.is_turret_possible(&event.position) {
@@ -75,19 +76,27 @@ pub fn handle_turret_placement<T>(
 
             map.place_tower(&event.position);
 
-            commands.spawn((Turret {
-                turret_type: event.turret_type,
-                position: event.position,
-                transform: Transform::from_xyz(
-                    event.position.x as f32 * 10.0,
-                    event.position.y as f32 * 10.0,
-                    0.0,
-                ),
-                range: 25.0,
-                damage: 10.0,
-                reload_time: 1.0,
-                last_fired: 0.0,
-            },));
+            let turret_id = commands
+                .spawn((Turret {
+                    turret_type: event.turret_type,
+                    position: event.position,
+                    transform: Transform::from_xyz(
+                        event.position.x as f32 * 10.0,
+                        event.position.y as f32 * 10.0,
+                        0.0,
+                    ),
+                    range: 50.0,
+                    damage: 10.0,
+                    reload_time: 1.0,
+                    last_fired: 0.0,
+                },))
+                .id();
+
+            if event.turret_type == TurretType::Follower {
+                commands
+                    .entity(turret_id)
+                    .insert(BulletThrower { speed: 50.0 });
+            }
 
             new_turret_writer.send(NewTurretEvent {
                 turret_type: event.turret_type,
@@ -148,7 +157,7 @@ pub fn spawn_creeps<T>(
 // System to shoot creeps within range
 pub fn shoot_creeps(
     time: Res<Time>,
-    mut turrets: Query<&mut Turret>,
+    mut turrets: Query<&mut Turret, Without<BulletThrower>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
     mut commands: Commands,
     mut fire_events: EventWriter<BasicFireEvent>,
@@ -192,6 +201,79 @@ pub fn shoot_creeps(
                 }
             }
             turret.last_fired = 0.0;
+        }
+    }
+}
+
+pub fn bullet_thrower_system(
+    time: Res<Time>,
+    mut turrets: Query<(&mut Turret, &BulletThrower)>,
+    creeps: Query<(Entity, &Creep, &Transform)>,
+    mut commands: Commands,
+) {
+    for (mut turret, bullet_thrower) in turrets.iter_mut() {
+        let turret_world_position = turret.transform.translation.truncate();
+
+        // Update last fired time
+        turret.last_fired += time.delta_secs();
+
+        if turret.last_fired >= turret.reload_time {
+            for (creep_entity, creep, creep_transform) in creeps.iter() {
+                let creep_position = creep_transform.translation.truncate();
+                let distance = turret_world_position.distance(creep_position);
+
+                if turret.last_fired >= turret.reload_time
+                    && distance <= turret.range
+                    && creep.health > 0.0
+                {
+                    turret.last_fired = 0.0;
+                    println!("Turret fired!");
+
+                    commands.spawn((
+                        FollowerBullet {
+                            damage: turret.damage,
+                            target: creep_entity,
+                            speed: bullet_thrower.speed,
+                            direction: (creep_position - turret_world_position).normalize(),
+                        },
+                        Transform::from_translation(turret.transform.translation),
+                    ));
+                }
+            }
+        }
+    }
+}
+
+pub fn move_follower_bullets(
+    mut commands: Commands,
+    mut bullets: Query<(Entity, &mut FollowerBullet, &mut Transform), Without<Creep>>,
+    mut creeps: Query<(&Transform, &mut Creep)>,
+    time: Res<Time>,
+) {
+    for (entity, mut bullet, mut transform) in bullets.iter_mut() {
+        if let Ok((target_transform, mut creep)) = creeps.get_mut(bullet.target) {
+            bullet.direction = (target_transform.translation - transform.translation)
+                .truncate()
+                .normalize();
+            transform.translation +=
+                bullet.direction.extend(0.0) * bullet.speed * time.delta_secs();
+
+            if transform.translation.distance(target_transform.translation) < 8.0 {
+                creep.health -= bullet.damage;
+                let kill: bool = creep.health <= 0.0;
+                if kill {
+                    println!("Creep killed by turret!");
+                    commands.entity(bullet.target).despawn_recursive();
+                } else {
+                    println!("Creep hit by turret! Health: {}", creep.health);
+                }
+
+                commands.entity(entity).despawn();
+            }
+        } else {
+            // Despawn the bullet if the target is no longer valid
+            // TODO: follow the direction until it hits something
+            commands.entity(entity).despawn();
         }
     }
 }

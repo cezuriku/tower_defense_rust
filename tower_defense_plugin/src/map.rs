@@ -38,7 +38,7 @@ impl Default for SimpleMap {
                 [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
                 [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ], // list(map(list, zip(*tab[::-1])))
+            ],
             start: ivec2(0, 1),
             end: ivec2(6, 3),
             path: vec![

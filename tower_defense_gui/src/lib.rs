@@ -49,6 +49,7 @@ fn insert_common_systems(app: &mut App) {
             handle_fire_event,
             update_fire,
             animate_sprite,
+            handle_new_bullets,
         ),
     );
 }
