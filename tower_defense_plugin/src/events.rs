@@ -21,5 +21,4 @@ pub struct MapChangedEvent;
 pub struct BasicFireEvent {
     pub origin: IVec2,
     pub target: Vec2,
-    pub kill: bool,
 }

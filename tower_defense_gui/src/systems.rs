@@ -323,12 +323,21 @@ pub fn handle_new_bullets(
     bullet_assets: Res<BulletAssets>,
 ) {
     let (anchor, _) = map_anchor_query.single();
+
     for entity in &mut query {
-        commands.entity(anchor).add_child(entity);
         commands.entity(entity).insert_if_new((
             Mesh2d(bullet_assets.mesh.clone()),
             MeshMaterial2d(bullet_assets.material.clone()),
         ));
+        commands.entity(entity).set_parent(anchor);
+    }
+}
+
+pub fn despawn_dead_bullets(mut commands: Commands, query: Query<(Entity, &FollowerBullet)>) {
+    for (entity, bullet) in &query {
+        if commands.get_entity(bullet.target).is_none() {
+            commands.entity(entity).despawn();
+        }
     }
 }
 

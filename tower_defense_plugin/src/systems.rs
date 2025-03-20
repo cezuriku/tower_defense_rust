@@ -70,6 +70,12 @@ pub fn handle_turret_placement<T>(
             TurretType::Follower => 75,
         };
 
+        let range = match event.turret_type {
+            TurretType::Basic => 25.0,
+            TurretType::Bomb => 20.0,
+            TurretType::Follower => 50.0,
+        };
+
         if game_data.gold >= cost && map.is_turret_possible(&event.position) {
             // Deduct gold
             game_data.gold -= cost;
@@ -85,7 +91,7 @@ pub fn handle_turret_placement<T>(
                         event.position.y as f32 * 10.0,
                         0.0,
                     ),
-                    range: 50.0,
+                    range,
                     damage: 10.0,
                     reload_time: 1.0,
                     last_fired: 0.0,
@@ -95,7 +101,7 @@ pub fn handle_turret_placement<T>(
             if event.turret_type == TurretType::Follower {
                 commands
                     .entity(turret_id)
-                    .insert(BulletThrower { speed: 50.0 });
+                    .insert(BulletThrower { speed: 30.0 });
             }
 
             new_turret_writer.send(NewTurretEvent {
@@ -159,7 +165,6 @@ pub fn shoot_creeps(
     time: Res<Time>,
     mut turrets: Query<&mut Turret, Without<BulletThrower>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
-    mut commands: Commands,
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
     for mut turret in turrets.iter_mut() {
@@ -169,7 +174,7 @@ pub fn shoot_creeps(
         turret.last_fired += time.delta_secs();
 
         if turret.last_fired >= turret.reload_time {
-            for (creep_entity, mut creep, creep_transform) in creeps.iter_mut() {
+            for (_, mut creep, creep_transform) in creeps.iter_mut() {
                 let creep_position = creep_transform.translation.truncate();
                 let distance = turret_world_position.distance(creep_position);
 
@@ -184,19 +189,9 @@ pub fn shoot_creeps(
                         // If Basic reset last fired to shot only once
                         turret.last_fired = 0.0;
                     }
-
-                    let kill: bool = creep.health <= 0.0;
-                    if kill {
-                        println!("Creep killed by turret!");
-                        commands.entity(creep_entity).despawn_recursive();
-                    } else {
-                        println!("Creep hit by turret! Health: {}", creep.health);
-                    }
-
                     fire_events.send(BasicFireEvent {
                         origin: turret.position,
                         target: creep_position,
-                        kill,
                     });
                 }
             }
@@ -235,6 +230,7 @@ pub fn bullet_thrower_system(
                             target: creep_entity,
                             speed: bullet_thrower.speed,
                             direction: (creep_position - turret_world_position).normalize(),
+                            angular_velocity: 2.0,
                         },
                         Transform::from_translation(turret.transform.translation),
                     ));
@@ -252,28 +248,45 @@ pub fn move_follower_bullets(
 ) {
     for (entity, mut bullet, mut transform) in bullets.iter_mut() {
         if let Ok((target_transform, mut creep)) = creeps.get_mut(bullet.target) {
-            bullet.direction = (target_transform.translation - transform.translation)
-                .truncate()
-                .normalize();
-            transform.translation +=
-                bullet.direction.extend(0.0) * bullet.speed * time.delta_secs();
+            let target_position = target_transform.translation.truncate();
+            let bullet_position = transform.translation.truncate();
 
-            if transform.translation.distance(target_transform.translation) < 8.0 {
+            let direction_to_target = (target_position - bullet_position).normalize();
+            let angle_to_target = direction_to_target.y.atan2(direction_to_target.x);
+            let current_angle = bullet.direction.y.atan2(bullet.direction.x);
+
+            let angle_diff =
+                (angle_to_target - current_angle).rem_euclid(2.0 * std::f32::consts::PI);
+            let rotation_direction = if angle_diff > std::f32::consts::PI {
+                -1.0
+            } else {
+                1.0
+            };
+
+            let rotation = rotation_direction * bullet.angular_velocity * time.delta_secs();
+            bullet.direction = Vec2::new(
+                bullet.direction.x * rotation.cos() - bullet.direction.y * rotation.sin(),
+                bullet.direction.x * rotation.sin() + bullet.direction.y * rotation.cos(),
+            );
+
+            let new_position =
+                bullet_position + bullet.direction * bullet.speed * time.delta_secs();
+            transform.translation = new_position.extend(transform.translation.z);
+
+            if transform.translation.distance(target_transform.translation) < 5.0
+                && creep.health > 0.0
+            {
                 creep.health -= bullet.damage;
-                let kill: bool = creep.health <= 0.0;
-                if kill {
-                    println!("Creep killed by turret!");
-                    commands.entity(bullet.target).despawn_recursive();
-                } else {
-                    println!("Creep hit by turret! Health: {}", creep.health);
-                }
-
                 commands.entity(entity).despawn();
             }
-        } else {
-            // Despawn the bullet if the target is no longer valid
-            // TODO: follow the direction until it hits something
-            commands.entity(entity).despawn();
+        }
+    }
+}
+
+pub fn despawn_dead_creeps(mut commands: Commands, mut creeps: Query<(Entity, &Creep)>) {
+    for (entity, creep) in creeps.iter_mut() {
+        if creep.health <= 0.0 {
+            commands.entity(entity).despawn_recursive();
         }
     }
 }

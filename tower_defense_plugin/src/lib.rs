@@ -68,6 +68,7 @@ fn insert_common_systems(app: &mut App) {
             bullet_thrower_system,
         ),
     );
+    app.add_systems(PostUpdate, despawn_dead_creeps);
 }
 
 fn insert_common_resources(app: &mut App) {

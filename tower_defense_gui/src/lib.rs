@@ -39,6 +39,7 @@ impl Plugin for TowerDefenseGuiSimpleMap {
 }
 
 fn insert_common_systems(app: &mut App) {
+    app.add_systems(PreUpdate, handle_new_bullets);
     app.add_systems(
         Update,
         (
@@ -49,9 +50,9 @@ fn insert_common_systems(app: &mut App) {
             handle_fire_event,
             update_fire,
             animate_sprite,
-            handle_new_bullets,
         ),
     );
+    app.add_systems(PostUpdate, despawn_dead_bullets);
 }
 
 fn insert_common_resources(app: &mut App) {

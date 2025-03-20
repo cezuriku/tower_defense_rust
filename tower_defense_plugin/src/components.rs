@@ -48,4 +48,5 @@ pub struct FollowerBullet {
     pub target: Entity,
     pub damage: f32,
     pub speed: f32,
+    pub angular_velocity: f32,
 }
