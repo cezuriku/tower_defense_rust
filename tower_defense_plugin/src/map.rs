@@ -141,11 +141,7 @@ impl Map for FreeMap {
     }
 
     fn is_turret_possible(&self, pos: &IVec2) -> bool {
-        if pos.x >= 0
-            && pos.y >= 0
-            && pos.x < GRID_WIDTH as i32
-            && pos.y < GRID_HEIGHT as i32
-            && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
+        if self.is_empty(pos)
             && *pos != self.end
             && *pos != self.start
             && astar(
