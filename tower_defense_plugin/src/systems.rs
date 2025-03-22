@@ -144,10 +144,10 @@ pub fn spawn_creeps<T>(
             .rev()
             .collect();
 
-        let (speed, health) = if rng.rng.next_u32() < u32::MAX / 2 {
-            (20.0, 100.0)
-        } else {
+        let (speed, health) = if rng.rng.next_u32() < u32::MAX / 4 {
             (35.0, 50.0)
+        } else {
+            (20.0, 100.0)
         };
 
         commands.spawn((
