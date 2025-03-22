@@ -94,6 +94,26 @@ impl Default for BaseMap {
     }
 }
 
+macro_rules! impl_map {
+    () => {
+        fn remove_tower(&mut self, pos: &IVec2) {
+            self.base.cells[pos.x as usize][pos.y as usize] = 0;
+        }
+
+        fn get_path(&self) -> &Vec<IVec2> {
+            &self.base.path
+        }
+
+        fn get_start(&self) -> IVec2 {
+            self.base.start
+        }
+
+        fn get_end(&self) -> IVec2 {
+            self.base.end
+        }
+    };
+}
+
 #[derive(Resource)]
 pub struct SimpleMap {
     base: BaseMap,
@@ -142,25 +162,11 @@ impl Map for SimpleMap {
         true
     }
 
-    fn remove_tower(&mut self, pos: &IVec2) {
-        self.base.cells[pos.x as usize][pos.y as usize] = 0;
-    }
-
     fn is_turret_possible(&self, pos: &IVec2) -> bool {
         self.base.is_empty(pos)
     }
 
-    fn get_path(&self) -> &Vec<IVec2> {
-        &self.base.path
-    }
-
-    fn get_start(&self) -> IVec2 {
-        self.base.start
-    }
-
-    fn get_end(&self) -> IVec2 {
-        self.base.end
-    }
+    impl_map!();
 }
 
 #[derive(Resource)]
@@ -200,10 +206,6 @@ impl Map for FreeMap {
         true
     }
 
-    fn remove_tower(&mut self, pos: &IVec2) {
-        self.base.cells[pos.x as usize][pos.y as usize] = 0;
-    }
-
     fn is_turret_possible(&self, pos: &IVec2) -> bool {
         if self.base.is_empty(pos)
             && *pos != self.base.end
@@ -220,18 +222,7 @@ impl Map for FreeMap {
         }
         false
     }
-
-    fn get_path(&self) -> &Vec<IVec2> {
-        &self.base.path
-    }
-
-    fn get_start(&self) -> IVec2 {
-        self.base.start
-    }
-
-    fn get_end(&self) -> IVec2 {
-        self.base.end
-    }
+    impl_map!();
 }
 
 impl DynamicMap for FreeMap {
