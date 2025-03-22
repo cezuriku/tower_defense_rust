@@ -35,7 +35,7 @@ pub fn setup<T>(
         material: materials.add(Color::srgb(0.5, 0.5, 0.5)),
         bomb_material: materials.add(Color::srgb(1.0, 0.9, 0.8)),
         follower_material: materials.add(Color::srgb(1.0, 0.5, 0.8)),
-        fire_image: asset_server.load("shotLarge.png"),
+        fire_image: asset_server.load("shots/shotLarge.png"),
         smoke_image: texture,
         smoke_atlas_layout: texture_atlas_layout,
     });

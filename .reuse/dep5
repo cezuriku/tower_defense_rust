@@ -1,0 +1,20 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Tower Defense Rust
+Upstream-Contact: Cezuriku <cezuriku@riseup.net>
+Source: https://github.com/cezuriku/tower_defense_rust
+
+Files: *
+Copyright: 2025 Cezuriku
+License: MIT
+
+# Assets
+
+Files: tower_defense/assets/shots/*
+Copyright: 2022 Kenney
+License: CC0-1.0
+Source: https://www.kenney.nl/assets/top-down-tanks-redux
+
+Files: tower_defense/assets/smoke05.png
+Copyright: 2023 BDragon1727
+License: Free to use on non-commercial games
+Source: https://bdragon1727.itch.io/free-smoke-fx-pixel-2
