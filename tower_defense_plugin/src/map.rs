@@ -12,81 +12,20 @@ pub trait Map {
     fn get_start(&self) -> IVec2;
     fn get_end(&self) -> IVec2;
 }
+
 pub trait DynamicMap {
     fn compute_path(&self, start: &IVec2) -> Option<(Vec<IVec2>, u32)>;
 }
 
 #[derive(Resource)]
-pub struct SimpleMap {
+pub struct BaseMap {
     pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
     pub start: IVec2,
     pub end: IVec2,
     pub path: Vec<IVec2>,
 }
 
-impl Default for SimpleMap {
-    fn default() -> Self {
-        Self {
-            cells: [
-                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 1, 0, 1, 1, 1, 1, 1, 1, 0],
-                [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
-                [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
-                [0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
-                [0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
-                [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
-                [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
-                [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            ],
-            start: ivec2(0, 1),
-            end: ivec2(6, 3),
-            path: vec![
-                IVec2 { x: 0, y: 1 },
-                IVec2 { x: 8, y: 1 },
-                IVec2 { x: 8, y: 8 },
-                IVec2 { x: 1, y: 8 },
-                IVec2 { x: 1, y: 3 },
-                IVec2 { x: 3, y: 3 },
-                IVec2 { x: 3, y: 6 },
-                IVec2 { x: 6, y: 6 },
-                IVec2 { x: 6, y: 3 },
-            ],
-        }
-    }
-}
-
-impl Map for SimpleMap {
-    fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.is_empty(pos) {
-            return false;
-        }
-        self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
-        true
-    }
-
-    fn remove_tower(&mut self, pos: &IVec2) {
-        self.cells[pos.x as usize][pos.y as usize] = 0;
-    }
-
-    fn is_turret_possible(&self, pos: &IVec2) -> bool {
-        self.is_empty(pos)
-    }
-
-    fn get_path(&self) -> &Vec<IVec2> {
-        self.path.as_ref()
-    }
-
-    fn get_start(&self) -> IVec2 {
-        self.start
-    }
-
-    fn get_end(&self) -> IVec2 {
-        self.end
-    }
-}
-
-impl SimpleMap {
+impl BaseMap {
     fn is_empty(&self, pos: &IVec2) -> bool {
         pos.x >= 0
             && pos.y >= 0
@@ -94,111 +33,9 @@ impl SimpleMap {
             && pos.y < GRID_HEIGHT as i32
             && self.cells[pos.x as usize][pos.y as usize] == 0
     }
-}
 
-#[derive(Resource)]
-pub struct FreeMap {
-    pub cells: [[u8; GRID_HEIGHT]; GRID_WIDTH],
-    pub start: IVec2,
-    pub end: IVec2,
-    pub path: Vec<IVec2>,
-}
-
-impl Default for FreeMap {
-    fn default() -> Self {
-        Self {
-            cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
-            start: ivec2(0, 0),
-            end: ivec2(9, 9),
-            path: vec![
-                IVec2 { x: 0, y: 0 },
-                IVec2 { x: 1, y: 1 },
-                IVec2 { x: 2, y: 2 },
-                IVec2 { x: 3, y: 3 },
-                IVec2 { x: 4, y: 4 },
-                IVec2 { x: 5, y: 5 },
-                IVec2 { x: 6, y: 6 },
-                IVec2 { x: 7, y: 7 },
-                IVec2 { x: 8, y: 8 },
-                IVec2 { x: 9, y: 9 },
-            ],
-        }
-    }
-}
-
-impl Map for FreeMap {
-    fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.is_empty(pos) {
-            return false;
-        }
-        self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
-        self.recompute_path();
-        true
-    }
-
-    fn remove_tower(&mut self, pos: &IVec2) {
-        self.cells[pos.x as usize][pos.y as usize] = 0;
-    }
-
-    fn is_turret_possible(&self, pos: &IVec2) -> bool {
-        if self.is_empty(pos)
-            && *pos != self.end
-            && *pos != self.start
-            && astar(
-                &self.start,
-                |p| self.successors_except(p, pos),
-                |p| Self::distance(p, &self.end),
-                |p| *p == self.end,
-            )
-            .is_some()
-        {
-            return true;
-        }
-        false
-    }
-
-    fn get_path(&self) -> &Vec<IVec2> {
-        self.path.as_ref()
-    }
-
-    fn get_start(&self) -> IVec2 {
-        self.start
-    }
-
-    fn get_end(&self) -> IVec2 {
-        self.end
-    }
-}
-
-impl DynamicMap for FreeMap {
-    fn compute_path(&self, start: &IVec2) -> Option<(Vec<IVec2>, u32)> {
-        astar(
-            start,
-            |p| self.successors(p),
-            |p| Self::distance(p, &self.end),
-            |p| *p == self.end,
-        )
-    }
-}
-
-impl FreeMap {
     fn distance(start: &IVec2, end: &IVec2) -> u32 {
         start.x.abs_diff(end.x).pow(2) + start.y.abs_diff(end.y).pow(2)
-    }
-
-    fn is_empty(&self, pos: &IVec2) -> bool {
-        pos.x >= 0
-            && pos.y >= 0
-            && pos.x < GRID_WIDTH as i32
-            && pos.y < GRID_HEIGHT as i32
-            && self.cells[pos.x as usize][pos.y as usize] != u8::MAX
-    }
-
-    fn successors_except(&self, pos: &IVec2, except: &IVec2) -> Vec<(IVec2, u32)> {
-        if except == pos {
-            return vec![];
-        }
-        self.successors(pos)
     }
 
     fn successors(&self, pos: &IVec2) -> Vec<(IVec2, u32)> {
@@ -244,12 +81,183 @@ impl FreeMap {
 
         straight.chain(diag).collect()
     }
+}
+
+impl Default for BaseMap {
+    fn default() -> Self {
+        Self {
+            cells: [[0; GRID_HEIGHT]; GRID_WIDTH],
+            start: ivec2(0, 0),
+            end: ivec2(9, 9),
+            path: vec![],
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct SimpleMap {
+    base: BaseMap,
+}
+
+impl Default for SimpleMap {
+    fn default() -> Self {
+        Self {
+            base: BaseMap {
+                cells: [
+                    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 0, 1, 1, 1, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
+                    [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+                    [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+                    [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                start: ivec2(0, 1),
+                end: ivec2(6, 3),
+                path: vec![
+                    IVec2 { x: 0, y: 1 },
+                    IVec2 { x: 8, y: 1 },
+                    IVec2 { x: 8, y: 8 },
+                    IVec2 { x: 1, y: 8 },
+                    IVec2 { x: 1, y: 3 },
+                    IVec2 { x: 3, y: 3 },
+                    IVec2 { x: 3, y: 6 },
+                    IVec2 { x: 6, y: 6 },
+                    IVec2 { x: 6, y: 3 },
+                ],
+            },
+        }
+    }
+}
+
+impl Map for SimpleMap {
+    fn place_tower(&mut self, pos: &IVec2) -> bool {
+        if !self.base.is_empty(pos) {
+            return false;
+        }
+        self.base.cells[pos.x as usize][pos.y as usize] = u8::MAX;
+        true
+    }
+
+    fn remove_tower(&mut self, pos: &IVec2) {
+        self.base.cells[pos.x as usize][pos.y as usize] = 0;
+    }
+
+    fn is_turret_possible(&self, pos: &IVec2) -> bool {
+        self.base.is_empty(pos)
+    }
+
+    fn get_path(&self) -> &Vec<IVec2> {
+        &self.base.path
+    }
+
+    fn get_start(&self) -> IVec2 {
+        self.base.start
+    }
+
+    fn get_end(&self) -> IVec2 {
+        self.base.end
+    }
+}
+
+#[derive(Resource)]
+pub struct FreeMap {
+    base: BaseMap,
+}
+
+impl Default for FreeMap {
+    fn default() -> Self {
+        Self {
+            base: BaseMap {
+                path: vec![
+                    IVec2 { x: 0, y: 0 },
+                    IVec2 { x: 1, y: 1 },
+                    IVec2 { x: 2, y: 2 },
+                    IVec2 { x: 3, y: 3 },
+                    IVec2 { x: 4, y: 4 },
+                    IVec2 { x: 5, y: 5 },
+                    IVec2 { x: 6, y: 6 },
+                    IVec2 { x: 7, y: 7 },
+                    IVec2 { x: 8, y: 8 },
+                    IVec2 { x: 9, y: 9 },
+                ],
+                ..BaseMap::default()
+            },
+        }
+    }
+}
+
+impl Map for FreeMap {
+    fn place_tower(&mut self, pos: &IVec2) -> bool {
+        if !self.base.is_empty(pos) {
+            return false;
+        }
+        self.base.cells[pos.x as usize][pos.y as usize] = u8::MAX;
+        self.recompute_path();
+        true
+    }
+
+    fn remove_tower(&mut self, pos: &IVec2) {
+        self.base.cells[pos.x as usize][pos.y as usize] = 0;
+    }
+
+    fn is_turret_possible(&self, pos: &IVec2) -> bool {
+        if self.base.is_empty(pos)
+            && *pos != self.base.end
+            && *pos != self.base.start
+            && astar(
+                &self.base.start,
+                |p| self.successors_except(p, pos),
+                |p| BaseMap::distance(p, &self.base.end),
+                |p| *p == self.base.end,
+            )
+            .is_some()
+        {
+            return true;
+        }
+        false
+    }
+
+    fn get_path(&self) -> &Vec<IVec2> {
+        &self.base.path
+    }
+
+    fn get_start(&self) -> IVec2 {
+        self.base.start
+    }
+
+    fn get_end(&self) -> IVec2 {
+        self.base.end
+    }
+}
+
+impl DynamicMap for FreeMap {
+    fn compute_path(&self, start: &IVec2) -> Option<(Vec<IVec2>, u32)> {
+        astar(
+            start,
+            |p| self.base.successors(p),
+            |p| BaseMap::distance(p, &self.base.end),
+            |p| *p == self.base.end,
+        )
+    }
+}
+
+impl FreeMap {
+    fn successors_except(&self, pos: &IVec2, except: &IVec2) -> Vec<(IVec2, u32)> {
+        if except == pos {
+            return vec![];
+        }
+        self.base.successors(pos)
+    }
 
     pub fn recompute_path(&mut self) {
-        if let Some((path, _)) = self.compute_path(&self.start) {
-            self.path = path
+        if let Some((path, _)) = self.compute_path(&self.base.start) {
+            self.base.path = path
         } else {
-            self.path = vec![]
+            self.base.path = vec![]
         }
     }
 }
@@ -274,14 +282,16 @@ mod tests {
     #[test]
     fn easy_pathfinding() {
         let mut map = FreeMap {
-            start: ivec2(0, 0),
-            end: ivec2(0, 2),
-            ..FreeMap::default()
+            base: BaseMap {
+                start: ivec2(0, 0),
+                end: ivec2(0, 2),
+                ..BaseMap::default()
+            },
         };
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
         map.recompute_path();
         assert_eq!(
-            map.path,
+            map.base.path,
             vec!(
                 IVec2 { x: 0, y: 0 }, // start
                 IVec2 { x: 1, y: 0 },
@@ -295,13 +305,15 @@ mod tests {
     #[test]
     fn impossible_pathfinding() {
         let mut map = FreeMap {
-            start: ivec2(0, 0),
-            end: ivec2(2, 2),
-            ..FreeMap::default()
+            base: BaseMap {
+                start: ivec2(0, 0),
+                end: ivec2(2, 2),
+                ..BaseMap::default()
+            },
         };
         map.place_tower(&IVec2 { x: 0, y: 1 }); // This is the tower (x in the example)
         map.place_tower(&IVec2 { x: 1, y: 0 }); // This is the tower (x in the example)
         map.recompute_path();
-        assert_eq!(map.path, vec![]);
+        assert_eq!(map.base.path, vec![]);
     }
 }
