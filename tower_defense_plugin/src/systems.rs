@@ -65,22 +65,18 @@ pub fn handle_turret_placement<T>(
     T: Resource + Map,
 {
     for event in events.read() {
-        let cost = match event.turret_type {
-            TurretType::Basic => 50,
-            TurretType::Bomb => 100,
-            TurretType::Follower => 75,
-        };
-
-        let range = match event.turret_type {
-            TurretType::Basic => 25.0,
-            TurretType::Bomb => 20.0,
-            TurretType::Follower => 50.0,
+        // Check the cost of the turret to ensure we can buy one
+        let (cost, range) = match event.turret_type {
+            TurretType::Basic => (50, 25.0),
+            TurretType::Bomb => (100, 20.0),
+            TurretType::Follower => (75, 50.0),
         };
 
         if game_data.gold >= cost && map.is_turret_possible(&event.position) {
-            // Deduct gold
+            // Deduct the cost of the turret from the player's gold
             game_data.gold -= cost;
 
+            // Place the base turret
             map.place_tower(&event.position);
 
             let turret_id = commands
@@ -99,6 +95,7 @@ pub fn handle_turret_placement<T>(
                 },))
                 .id();
 
+            // Place the specific turret type (which will handle the actual shooting)
             match event.turret_type {
                 TurretType::Basic => {
                     commands.entity(turret_id).insert(BasicTurret {});
@@ -113,6 +110,7 @@ pub fn handle_turret_placement<T>(
                 }
             }
 
+            // Notify other systems that a new turret has been placed (e.g., for UI updates)
             new_turret_writer.send(NewTurretEvent {
                 turret_type: event.turret_type,
                 position: event.position,
@@ -122,10 +120,7 @@ pub fn handle_turret_placement<T>(
 
             println!("Turret placed successfully!");
         } else {
-            println!(
-                "Insufficient resources to place turret! Cost: {cost} Gold: {} ",
-                game_data.gold
-            );
+            println!("Can not place turret at position: {:?}!", event.position);
         }
     }
 }
