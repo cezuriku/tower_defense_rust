@@ -81,6 +81,14 @@ impl BaseMap {
 
         straight.chain(diag).collect()
     }
+
+    fn place_tower(&mut self, pos: &IVec2) -> bool {
+        if !self.is_empty(pos) {
+            return false;
+        }
+        self.cells[pos.x as usize][pos.y as usize] = u8::MAX;
+        true
+    }
 }
 
 impl Default for BaseMap {
@@ -155,11 +163,7 @@ impl Default for SimpleMap {
 
 impl Map for SimpleMap {
     fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.base.is_empty(pos) {
-            return false;
-        }
-        self.base.cells[pos.x as usize][pos.y as usize] = u8::MAX;
-        true
+        self.base.place_tower(pos)
     }
 
     fn is_turret_possible(&self, pos: &IVec2) -> bool {
@@ -198,12 +202,11 @@ impl Default for FreeMap {
 
 impl Map for FreeMap {
     fn place_tower(&mut self, pos: &IVec2) -> bool {
-        if !self.base.is_empty(pos) {
-            return false;
+        if self.base.place_tower(pos) {
+            self.recompute_path();
+            return true;
         }
-        self.base.cells[pos.x as usize][pos.y as usize] = u8::MAX;
-        self.recompute_path();
-        true
+        false
     }
 
     fn is_turret_possible(&self, pos: &IVec2) -> bool {
