@@ -38,6 +38,12 @@ pub struct Turret {
 }
 
 #[derive(Component)]
+pub struct BasicTurret {}
+
+#[derive(Component)]
+pub struct BombTurret {}
+
+#[derive(Component)]
 pub struct BulletThrower {
     pub speed: f32,
 }

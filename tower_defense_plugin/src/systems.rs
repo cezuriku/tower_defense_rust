@@ -99,10 +99,18 @@ pub fn handle_turret_placement<T>(
                 },))
                 .id();
 
-            if event.turret_type == TurretType::Follower {
-                commands
-                    .entity(turret_id)
-                    .insert(BulletThrower { speed: 30.0 });
+            match event.turret_type {
+                TurretType::Basic => {
+                    commands.entity(turret_id).insert(BasicTurret {});
+                }
+                TurretType::Bomb => {
+                    commands.entity(turret_id).insert(BombTurret {});
+                }
+                TurretType::Follower => {
+                    commands
+                        .entity(turret_id)
+                        .insert(BulletThrower { speed: 30.0 });
+                }
             }
 
             new_turret_writer.send(NewTurretEvent {
@@ -165,10 +173,9 @@ pub fn spawn_creeps<T>(
     }
 }
 
-// System to shoot creeps within range
-pub fn shoot_creeps(
+pub fn basic_turret_system(
     time: Res<Time>,
-    mut turrets: Query<&mut Turret, Without<BulletThrower>>,
+    mut turrets: Query<&mut Turret, With<BasicTurret>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
@@ -176,25 +183,33 @@ pub fn shoot_creeps(
         if time_to_fire(&mut turret, &time) {
             let turret_position = turret.transform.translation.truncate();
 
-            if turret.turret_type == TurretType::Basic {
-                // If turret is basic just fire at the first creep in range
-                let mut ro_creeps = creeps.transmute_lens::<(Entity, &Creep, &Transform)>();
-                if let Some((creep_entity, creep_position, _)) =
-                    find_one_creep_to_fire(turret_position, turret.range, &ro_creeps.query())
-                {
-                    if let Ok((_, mut creep, _)) = creeps.get_mut(creep_entity) {
-                        shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
-                        turret.last_fired = 0.0;
-                    }
+            let mut ro_creeps = creeps.transmute_lens::<(Entity, &Creep, &Transform)>();
+            if let Some((creep_entity, creep_position, _)) =
+                find_one_creep_to_fire(turret_position, turret.range, &ro_creeps.query())
+            {
+                if let Ok((_, mut creep, _)) = creeps.get_mut(creep_entity) {
+                    shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
+                    turret.last_fired = 0.0;
                 }
-            } else if turret.turret_type == TurretType::Bomb {
-                // If turret is bomb fire at all creeps in range
-                for (_, mut creep, creep_position) in creeps.iter_mut() {
-                    let creep_position = creep_position.translation.truncate();
-                    if turret_position.distance(creep_position) <= turret.range {
-                        shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
-                        turret.last_fired = 0.0;
-                    }
+            }
+        }
+    }
+}
+
+pub fn bomb_turret_system(
+    time: Res<Time>,
+    mut turrets: Query<&mut Turret, With<BombTurret>>,
+    mut creeps: Query<(Entity, &mut Creep, &Transform)>,
+    mut fire_events: EventWriter<BasicFireEvent>,
+) {
+    for mut turret in turrets.iter_mut() {
+        if time_to_fire(&mut turret, &time) {
+            let turret_position = turret.transform.translation.truncate();
+            for (_, mut creep, creep_position) in creeps.iter_mut() {
+                let creep_position = creep_position.translation.truncate();
+                if turret_position.distance(creep_position) <= turret.range {
+                    shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
+                    turret.last_fired = 0.0;
                 }
             }
         }
