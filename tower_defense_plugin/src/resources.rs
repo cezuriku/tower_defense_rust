@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use rand::prelude::*;
 
 #[derive(Resource)]
 pub struct GameData {
@@ -14,6 +15,19 @@ impl Default for GameData {
             score: 0,
             lives: 10,
             gold: 500,
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct CreepRng {
+    pub rng: SmallRng,
+}
+
+impl Default for CreepRng {
+    fn default() -> Self {
+        Self {
+            rng: SmallRng::from_rng(&mut rand::rng()),
         }
     }
 }

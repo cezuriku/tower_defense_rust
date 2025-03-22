@@ -5,6 +5,7 @@ use crate::resources::*;
 use crate::utils::world_to_grid;
 use crate::{DynamicMap, events::*};
 use crate::{Map, components::*};
+use rand::RngCore;
 
 pub fn setup() {}
 
@@ -126,6 +127,7 @@ pub fn spawn_creeps<T>(
     time: Res<Time>,
     mut last_spawn_time: Local<f32>,
     map: Res<T>,
+    mut rng: ResMut<CreepRng>,
 ) where
     T: Resource + Map,
 {
@@ -142,18 +144,21 @@ pub fn spawn_creeps<T>(
             .rev()
             .collect();
 
+        let (speed, health) = if rng.rng.next_u32() < u32::MAX / 2 {
+            (20.0, 100.0)
+        } else {
+            (35.0, 50.0)
+        };
+
         commands.spawn((
-            MovingEntity {
-                speed: 20.0,
-                waypoints,
-            },
+            MovingEntity { speed, waypoints },
             Transform::from_translation(Vec3::new(
                 start_pos.x as f32 * 10.0,
                 start_pos.y as f32 * 10.0,
                 0.0,
             )),
             Creep {
-                health: 100.0,
+                health,
                 max_health: 100.0,
             },
         ));

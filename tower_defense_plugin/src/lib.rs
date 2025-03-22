@@ -4,7 +4,7 @@ pub mod components;
 pub mod events;
 pub mod map;
 pub use map::*;
-use resources::GameData;
+use resources::{CreepRng, GameData};
 use systems::*;
 pub mod resources;
 mod systems;
@@ -72,7 +72,8 @@ fn insert_common_systems(app: &mut App) {
 }
 
 fn insert_common_resources(app: &mut App) {
-    app.insert_resource(GameData::default());
+    app.insert_resource(GameData::default())
+        .insert_resource(CreepRng::default());
 }
 
 fn insert_common_events(app: &mut App) {
