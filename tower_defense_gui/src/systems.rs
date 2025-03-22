@@ -365,51 +365,70 @@ pub fn handle_fire_event(
         let direction = (event.target - grid_to_world(event.origin)).normalize();
         let angle = direction.y.atan2(direction.x);
 
-        let fire = commands
-            .spawn(FireBundle {
-                fire: Fire { time_left: 0.1 },
-                sprite: Sprite {
-                    image: tower_assets.fire_image.clone(),
-                    custom_size: Some(Vec2::new(3.5, 1.5)),
-                    anchor: Anchor::CenterLeft,
-                    ..Default::default()
-                },
-                transform: Transform {
-                    translation: grid_to_world(event.origin).extend(100.0),
-                    rotation: Quat::from_rotation_z(angle),
-                    ..Default::default()
-                },
-            })
-            .id();
+        let fire = create_fire_entity(&mut commands, &tower_assets, event.origin, angle);
+        let smoke = create_smoke_entity(&mut commands, &tower_assets, event.target);
 
-        let animation_indices = AnimationIndices {
-            first: 66,
-            last: 66 + 10,
-        };
-
-        let smoke = commands
-            .spawn((
-                Sprite {
-                    custom_size: Some(Vec2::new(8.0, 8.0)),
-                    ..Sprite::from_atlas_image(
-                        tower_assets.smoke_image.clone(),
-                        TextureAtlas {
-                            layout: tower_assets.smoke_atlas_layout.clone(),
-                            index: animation_indices.first,
-                        },
-                    )
-                },
-                Transform {
-                    translation: event.target.extend(100.0),
-                    ..Default::default()
-                },
-                animation_indices,
-                AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-            ))
-            .id();
         commands.entity(anchor).add_child(fire);
         commands.entity(anchor).add_child(smoke);
     }
+}
+
+fn create_fire_entity(
+    commands: &mut Commands,
+    tower_assets: &Res<TowerAssets>,
+    origin: IVec2,
+    angle: f32,
+) -> Entity {
+    let fire = commands
+        .spawn(FireBundle {
+            fire: Fire { time_left: 0.1 },
+            sprite: Sprite {
+                image: tower_assets.fire_image.clone(),
+                custom_size: Some(Vec2::new(3.5, 1.5)),
+                anchor: Anchor::CenterLeft,
+                ..Default::default()
+            },
+            transform: Transform {
+                translation: grid_to_world(origin).extend(100.0),
+                rotation: Quat::from_rotation_z(angle),
+                ..Default::default()
+            },
+        })
+        .id();
+    fire
+}
+
+fn create_smoke_entity(
+    commands: &mut Commands,
+    tower_assets: &Res<TowerAssets>,
+    target: Vec2,
+) -> Entity {
+    let animation_indices = AnimationIndices {
+        first: 66,
+        last: 66 + 10,
+    };
+
+    let smoke = commands
+        .spawn((
+            Sprite {
+                custom_size: Some(Vec2::new(8.0, 8.0)),
+                ..Sprite::from_atlas_image(
+                    tower_assets.smoke_image.clone(),
+                    TextureAtlas {
+                        layout: tower_assets.smoke_atlas_layout.clone(),
+                        index: animation_indices.first,
+                    },
+                )
+            },
+            Transform {
+                translation: target.extend(100.0),
+                ..Default::default()
+            },
+            animation_indices,
+            AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+        ))
+        .id();
+    smoke
 }
 
 pub fn update_fire(mut commands: Commands, mut query: Query<(Entity, &mut Fire)>, time: Res<Time>) {
