@@ -74,6 +74,7 @@ fn init_assets(
         material: materials.add(Color::srgb(0.5, 0.5, 0.5)),
         bomb_material: materials.add(Color::srgb(1.0, 0.9, 0.8)),
         follower_material: materials.add(Color::srgb(1.0, 0.5, 0.8)),
+        slow_material: materials.add(Color::srgb_u8(100, 100, 250)),
         fire_image: asset_server.load("shots/shotLarge.png"),
         smoke_image: texture,
         smoke_atlas_layout: texture_atlas_layout,
@@ -231,6 +232,11 @@ pub fn new_turrets(
                 commands
                     .entity(turret_id)
                     .insert(MeshMaterial2d(tower_assets.follower_material.clone()));
+            }
+            TurretType::Slow => {
+                commands
+                    .entity(turret_id)
+                    .insert(MeshMaterial2d(tower_assets.slow_material.clone()));
             }
         }
     }

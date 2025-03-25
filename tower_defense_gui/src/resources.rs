@@ -6,6 +6,7 @@ pub struct TowerAssets {
     pub material: Handle<ColorMaterial>,
     pub bomb_material: Handle<ColorMaterial>,
     pub follower_material: Handle<ColorMaterial>,
+    pub slow_material: Handle<ColorMaterial>,
     pub fire_image: Handle<Image>,
     pub smoke_image: Handle<Image>,
     pub smoke_atlas_layout: Handle<TextureAtlasLayout>,
