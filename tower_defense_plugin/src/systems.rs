@@ -76,39 +76,7 @@ pub fn handle_turret_placement<T>(
             // Deduct the cost of the turret from the player's gold
             game_data.gold -= cost;
 
-            // Place the base turret
-            map.place_tower(&event.position);
-
-            let turret_id = commands
-                .spawn((Turret {
-                    turret_type: event.turret_type,
-                    position: event.position,
-                    transform: Transform::from_xyz(
-                        event.position.x as f32 * 10.0,
-                        event.position.y as f32 * 10.0,
-                        0.0,
-                    ),
-                    range,
-                    damage: 10.0,
-                    reload_time: 1.0,
-                    last_fired: 0.0,
-                },))
-                .id();
-
-            // Place the specific turret type (which will handle the actual shooting)
-            match event.turret_type {
-                TurretType::Basic => {
-                    commands.entity(turret_id).insert(BasicTurret {});
-                }
-                TurretType::Bomb => {
-                    commands.entity(turret_id).insert(BombTurret {});
-                }
-                TurretType::Follower => {
-                    commands
-                        .entity(turret_id)
-                        .insert(BulletThrower { speed: 30.0 });
-                }
-            }
+            create_turret(&mut commands, &mut map, event, range);
 
             // Notify other systems that a new turret has been placed (e.g., for UI updates)
             new_turret_writer.send(NewTurretEvent {
@@ -121,6 +89,49 @@ pub fn handle_turret_placement<T>(
             println!("Turret placed successfully!");
         } else {
             println!("Can not place turret at position: {:?}!", event.position);
+        }
+    }
+}
+
+fn create_turret<T>(
+    commands: &mut Commands,
+    map: &mut ResMut<T>,
+    event: &PlaceTurretEvent,
+    range: f32,
+) where
+    T: Resource + Map,
+{
+    // Place the base turret
+    map.place_tower(&event.position);
+
+    let turret_id = commands
+        .spawn((Turret {
+            turret_type: event.turret_type,
+            position: event.position,
+            transform: Transform::from_xyz(
+                event.position.x as f32 * 10.0,
+                event.position.y as f32 * 10.0,
+                0.0,
+            ),
+            range,
+            damage: 10.0,
+            reload_time: 1.0,
+            last_fired: 0.0,
+        },))
+        .id();
+
+    // Place the specific turret type (which will handle the actual shooting)
+    match event.turret_type {
+        TurretType::Basic => {
+            commands.entity(turret_id).insert(BasicTurret {});
+        }
+        TurretType::Bomb => {
+            commands.entity(turret_id).insert(BombTurret {});
+        }
+        TurretType::Follower => {
+            commands
+                .entity(turret_id)
+                .insert(BulletThrower { speed: 30.0 });
         }
     }
 }
