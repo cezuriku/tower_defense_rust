@@ -68,6 +68,7 @@ fn insert_common_systems(app: &mut App) {
             slow_turret_system,
             move_follower_bullets,
             bullet_thrower_system,
+            despawn_slowdown,
         ),
     );
     app.add_systems(PostUpdate, despawn_dead_creeps);
