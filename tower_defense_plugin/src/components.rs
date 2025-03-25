@@ -24,6 +24,7 @@ pub enum TurretType {
     Basic,
     Bomb,
     Follower,
+    Slow,
 }
 
 #[derive(Component)]
@@ -44,6 +45,9 @@ pub struct BasicTurret {}
 pub struct BombTurret {}
 
 #[derive(Component)]
+pub struct SlowTurret {}
+
+#[derive(Component)]
 pub struct BulletThrower {
     pub speed: f32,
 }
@@ -55,4 +59,10 @@ pub struct FollowerBullet {
     pub damage: f32,
     pub speed: f32,
     pub angular_velocity: f32,
+}
+
+#[derive(Component)]
+pub struct SlowDown {
+    pub time_to_live: f32,
+    pub strength: f32,
 }

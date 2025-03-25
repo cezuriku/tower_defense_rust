@@ -65,6 +65,7 @@ fn insert_common_systems(app: &mut App) {
             move_creeps,
             basic_turret_system,
             bomb_turret_system,
+            slow_turret_system,
             move_follower_bullets,
             bullet_thrower_system,
         ),

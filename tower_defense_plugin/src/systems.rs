@@ -66,17 +66,18 @@ pub fn handle_turret_placement<T>(
 {
     for event in events.read() {
         // Check the cost of the turret to ensure we can buy one
-        let (cost, range) = match event.turret_type {
-            TurretType::Basic => (50, 25.0),
-            TurretType::Bomb => (100, 20.0),
-            TurretType::Follower => (75, 50.0),
+        let (cost, range, reload_time) = match event.turret_type {
+            TurretType::Basic => (50, 25.0, 1.0),
+            TurretType::Bomb => (100, 20.0, 1.0),
+            TurretType::Follower => (75, 50.0, 1.0),
+            TurretType::Slow => (10, 50.0, 3.0),
         };
 
         if game_data.gold >= cost && map.is_turret_possible(&event.position) {
             // Deduct the cost of the turret from the player's gold
             game_data.gold -= cost;
 
-            create_turret(&mut commands, &mut map, event, range);
+            create_turret(&mut commands, &mut map, event, range, reload_time);
 
             // Notify other systems that a new turret has been placed (e.g., for UI updates)
             new_turret_writer.send(NewTurretEvent {
@@ -98,6 +99,7 @@ fn create_turret<T>(
     map: &mut ResMut<T>,
     event: &PlaceTurretEvent,
     range: f32,
+    reload_time: f32,
 ) where
     T: Resource + Map,
 {
@@ -115,7 +117,7 @@ fn create_turret<T>(
             ),
             range,
             damage: 10.0,
-            reload_time: 1.0,
+            reload_time,
             last_fired: 0.0,
         },))
         .id();
@@ -132,6 +134,9 @@ fn create_turret<T>(
             commands
                 .entity(turret_id)
                 .insert(BulletThrower { speed: 30.0 });
+        }
+        TurretType::Slow => {
+            commands.entity(turret_id).insert(SlowTurret {});
         }
     }
 }
@@ -179,27 +184,60 @@ pub fn spawn_creeps<T>(
     }
 }
 
+macro_rules! shoot_one {
+    ($turrets: ident, $creeps: ident, $time: ident, $inner_function: expr) => {
+        for mut turret in $turrets.iter_mut() {
+            if time_to_fire(&mut turret, &$time) {
+                let turret_position = turret.transform.translation.truncate();
+                let mut ro_creeps = $creeps.transmute_lens::<(Entity, &Creep, &Transform)>();
+                if let Some((creep_entity, creep_position, _)) =
+                    find_one_creep_to_fire(turret_position, turret.range, &ro_creeps.query())
+                {
+                    $inner_function(creep_entity, creep_position, &turret);
+
+                    turret.last_fired = 0.0;
+                }
+            }
+        }
+    };
+}
+
 pub fn basic_turret_system(
     time: Res<Time>,
     mut turrets: Query<&mut Turret, With<BasicTurret>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
-    for mut turret in turrets.iter_mut() {
-        if time_to_fire(&mut turret, &time) {
-            let turret_position = turret.transform.translation.truncate();
-
-            let mut ro_creeps = creeps.transmute_lens::<(Entity, &Creep, &Transform)>();
-            if let Some((creep_entity, creep_position, _)) =
-                find_one_creep_to_fire(turret_position, turret.range, &ro_creeps.query())
-            {
-                if let Ok((_, mut creep, _)) = creeps.get_mut(creep_entity) {
-                    shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
-                    turret.last_fired = 0.0;
-                }
+    shoot_one!(
+        turrets,
+        creeps,
+        time,
+        |creep_entity, creep_position, turret| {
+            if let Ok((_, mut creep, _)) = creeps.get_mut(creep_entity) {
+                shoot_creep(&mut fire_events, turret, &mut creep, creep_position);
             }
         }
-    }
+    );
+}
+
+pub fn slow_turret_system(
+    time: Res<Time>,
+    mut turrets: Query<&mut Turret, With<SlowTurret>>,
+    mut creeps: Query<(Entity, &Creep, &Transform), Without<SlowDown>>,
+    mut commands: Commands,
+) {
+    shoot_one!(
+        turrets,
+        creeps,
+        time,
+        |creep_entity, _creep_position, _turret| {
+            println!("Slow turret shooting creep {:?}", creep_entity);
+            commands.entity(creep_entity).insert_if_new(SlowDown {
+                time_to_live: 5.0,
+                strength: 5.0,
+            });
+        }
+    );
 }
 
 pub fn bomb_turret_system(
