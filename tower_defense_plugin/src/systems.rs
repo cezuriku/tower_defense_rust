@@ -9,9 +9,15 @@ use rand::RngCore;
 
 pub fn setup() {}
 
-pub fn move_creeps(mut creeps: Query<(&mut MovingEntity, &mut Transform)>, time: Res<Time>) {
-    for (mut creep, mut transform) in &mut creeps {
+pub fn move_creeps(
+    mut creeps: Query<(&mut MovingEntity, &mut Transform, Option<&SlowDown>)>,
+    time: Res<Time>,
+) {
+    for (mut creep, mut transform, slowdown) in &mut creeps {
         let mut delta = creep.speed * time.delta_secs();
+        if let Some(slowdown) = slowdown {
+            delta /= slowdown.strength
+        }
         while delta > 0.0 && !creep.waypoints.is_empty() {
             if let Some(waypoint) = creep.waypoints.last() {
                 let distance = transform.translation.distance(waypoint.extend(0.0));
@@ -376,6 +382,19 @@ pub fn despawn_dead_creeps(mut commands: Commands, mut creeps: Query<(Entity, &C
     for (entity, creep) in creeps.iter_mut() {
         if creep.health <= 0.0 {
             commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn despawn_slowdown(
+    mut commands: Commands,
+    mut creeps: Query<(Entity, &mut SlowDown)>,
+    time: Res<Time>,
+) {
+    for (entity, mut slowdown) in creeps.iter_mut() {
+        slowdown.time_to_live -= time.delta_secs();
+        if slowdown.time_to_live <= 0.0 {
+            commands.entity(entity).remove::<SlowDown>();
         }
     }
 }
