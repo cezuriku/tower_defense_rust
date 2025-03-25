@@ -26,6 +26,45 @@ pub fn setup<T>(
 ) where
     T: Resource + Map,
 {
+    init_assets(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        &asset_server,
+        &mut texture_atlas_layouts,
+    );
+
+    init_path(&mut commands, &mut meshes, &mut materials, map);
+
+    commands.spawn((
+        Camera2d,
+        MainCamera,
+        OrthographicProjection {
+            near: -1000.0,
+            far: 1000.0,
+            scale: 1.0,
+            area: Rect::new(-100.0, -100.0, 100.0, 100.0),
+            viewport_origin: Vec2::new(0.5, 0.5),
+            scaling_mode: ScalingMode::AutoMin {
+                min_width: 110.0,
+                min_height: 110.0,
+            },
+        },
+    ));
+    commands.spawn((
+        Transform::from_xyz(-45.0, -45.0, 10.0),
+        Visibility::default(),
+        MapAnchor,
+    ));
+}
+
+fn init_assets(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    asset_server: &Res<AssetServer>,
+    texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
+) {
     let texture = asset_server.load("smoke05.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(64), 11, 15, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
@@ -56,7 +95,16 @@ pub fn setup<T>(
             ..Sprite::from_color(Color::srgb(0.0, 1.0, 0.0), vec2(1.5, 8.0))
         },
     });
+}
 
+fn init_path<T>(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    map: Res<T>,
+) where
+    T: Resource + Map,
+{
     let path_assets = PathAssets {
         mesh: meshes.add(Rectangle::new(3.0, 3.0)),
         material: materials.add(Color::srgb_u8(218, 165, 35)),
@@ -73,7 +121,7 @@ pub fn setup<T>(
     ));
 
     draw_path(
-        &mut commands,
+        commands,
         &path_assets.mesh,
         &path_assets.material,
         &map,
@@ -102,26 +150,6 @@ pub fn setup<T>(
     ));
 
     commands.insert_resource(path_assets);
-    commands.spawn((
-        Camera2d,
-        MainCamera,
-        OrthographicProjection {
-            near: -1000.0,
-            far: 1000.0,
-            scale: 1.0,
-            area: Rect::new(-100.0, -100.0, 100.0, 100.0),
-            viewport_origin: Vec2::new(0.5, 0.5),
-            scaling_mode: ScalingMode::AutoMin {
-                min_width: 110.0,
-                min_height: 110.0,
-            },
-        },
-    ));
-    commands.spawn((
-        Transform::from_xyz(-45.0, -45.0, 10.0),
-        Visibility::default(),
-        MapAnchor,
-    ));
 }
 
 pub fn mouse_input(
@@ -215,7 +243,7 @@ pub fn update_path(
     map: Res<FreeMap>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
     mut events: EventReader<MapChangedEvent>,
-    meshes: ResMut<Assets<Mesh>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     if events.read().len() != 0 {
         let map_anchor = map_anchor_query.single();
@@ -227,7 +255,7 @@ pub fn update_path(
             &path_assets.material,
             &map,
             grid_origin,
-            meshes,
+            &mut meshes,
         );
     }
 }
@@ -238,7 +266,7 @@ pub fn draw_path<T>(
     material: &Handle<ColorMaterial>,
     map: &Res<T>,
     grid_origin: Vec2,
-    mut meshes: ResMut<Assets<Mesh>>,
+    meshes: &mut ResMut<Assets<Mesh>>,
 ) where
     T: Resource + Map,
 {
