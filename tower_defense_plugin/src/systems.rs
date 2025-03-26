@@ -115,7 +115,7 @@ fn create_turret<T>(
     map.place_tower(&event.position);
 
     let turret_id = commands
-        .spawn((Turret {
+        .spawn(Turret {
             turret_type: event.turret_type,
             position: event.position,
             transform: Transform::from_xyz(
@@ -127,7 +127,7 @@ fn create_turret<T>(
             damage: 10.0,
             reload_time,
             last_fired: 0.0,
-        },))
+        })
         .id();
 
     // Place the specific turret type (which will handle the actual shooting)
@@ -193,14 +193,17 @@ pub fn spawn_creeps<T>(
 }
 
 macro_rules! shoot_one {
-    ($turret: ident, $creeps: ident, $time: ident, $inner_function: expr) => {
+    ($turret: ident, $creeps: ident, $time: ident, $strategy: ident, $inner_function: expr) => {
         if time_to_fire(&mut $turret, &$time) {
             let turret_position = $turret.transform.translation.truncate();
             let mut ro_creeps =
                 $creeps.transmute_lens::<(Entity, &Creep, &Transform, &MovingEntity)>();
-            if let Some((creep_entity, creep_position, _)) =
-                find_one_creep_to_fire(turret_position, $turret.range, &ro_creeps.query())
-            {
+            if let Some((creep_entity, creep_position, _)) = find_top_creep_within_range(
+                turret_position,
+                $turret.range,
+                &ro_creeps.query(),
+                $strategy,
+            ) {
                 $inner_function(creep_entity, creep_position, turret_position);
 
                 $turret.last_fired = 0.0;
@@ -211,15 +214,16 @@ macro_rules! shoot_one {
 
 pub fn basic_turret_system(
     time: Res<Time>,
-    mut turrets: Query<&mut Turret, With<BasicTurret>>,
+    mut turrets: Query<(&mut Turret, Option<&Strategy>), With<BasicTurret>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform, &MovingEntity)>,
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
-    for mut turret in turrets.iter_mut() {
+    for (mut turret, strategy) in turrets.iter_mut() {
         shoot_one!(
             turret,
             creeps,
             time,
+            strategy,
             |creep_entity, creep_position, _turret_entity| {
                 if let Ok((_, mut creep, _, _)) = creeps.get_mut(creep_entity) {
                     shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
@@ -231,15 +235,16 @@ pub fn basic_turret_system(
 
 pub fn slow_turret_system(
     time: Res<Time>,
-    mut turrets: Query<&mut Turret, With<SlowTurret>>,
+    mut turrets: Query<(&mut Turret, Option<&Strategy>), With<SlowTurret>>,
     mut creeps: Query<(Entity, &Creep, &Transform, &MovingEntity), Without<SlowDown>>,
     mut commands: Commands,
 ) {
-    for mut turret in turrets.iter_mut() {
+    for (mut turret, strategy) in turrets.iter_mut() {
         shoot_one!(
             turret,
             creeps,
             time,
+            strategy,
             |creep_entity, _creep_position, _turret_entity| {
                 commands.entity(creep_entity).insert_if_new(SlowDown {
                     time_to_live: 5.0,
@@ -286,15 +291,16 @@ fn shoot_creep(
 
 pub fn bullet_thrower_system(
     time: Res<Time>,
-    mut turrets: Query<(&mut Turret, &BulletThrower)>,
+    mut turrets: Query<(&mut Turret, &BulletThrower, Option<&Strategy>)>,
     mut creeps: Query<(Entity, &Creep, &Transform, &MovingEntity)>,
     mut commands: Commands,
 ) {
-    for (mut turret, bullet_thrower) in turrets.iter_mut() {
+    for (mut turret, bullet_thrower, strategy) in turrets.iter_mut() {
         shoot_one!(
             turret,
             creeps,
             time,
+            strategy,
             |creep_entity, creep_position: Vec2, turret_position: Vec2| {
                 commands.spawn((
                     FollowerBullet {
@@ -320,20 +326,47 @@ fn time_to_fire(turret: &mut Turret, time: &Res<Time>) -> bool {
     false
 }
 
-fn find_one_creep_to_fire(
+fn find_top_creep_within_range(
     turret_position: Vec2,
     turret_range: f32,
     creeps: &Query<'_, '_, (Entity, &Creep, &Transform, &MovingEntity)>,
+    strategy: Option<&Strategy>,
 ) -> Option<(Entity, Vec2, Vec2)> {
-    for (creep_entity, creep, creep_transform, _) in creeps.iter() {
+    let mut best_creep: Option<(Entity, Vec2, Vec2)> = None;
+    let strategy = match strategy {
+        Some(strategy) => strategy,
+        None => &Strategy::Closest,
+    };
+    let mut best_value: f32 = match strategy {
+        Strategy::Weakest => f32::MAX,
+        Strategy::Strongest => f32::MIN,
+        Strategy::Slowest => f32::MAX,
+        Strategy::Fastest => f32::MIN,
+        Strategy::Closest => f32::MAX,
+        Strategy::Furthest => f32::MIN,
+    };
+
+    for (creep_entity, creep, creep_transform, moving_entity) in creeps.iter() {
         let creep_position = creep_transform.translation.truncate();
         let distance = turret_position.distance(creep_position);
 
-        if distance <= turret_range && creep.health > 0.0 {
-            return Some((creep_entity, creep_position, turret_position));
+        if distance <= turret_range {
+            let (value, should_update) = match strategy {
+                Strategy::Weakest => (creep.health, creep.health < best_value),
+                Strategy::Strongest => (creep.health, creep.health > best_value),
+                Strategy::Slowest => (moving_entity.speed, moving_entity.speed < best_value),
+                Strategy::Fastest => (moving_entity.speed, moving_entity.speed > best_value),
+                Strategy::Closest => (distance, distance < best_value),
+                Strategy::Furthest => (distance, distance > best_value),
+            };
+
+            if should_update {
+                best_value = value;
+                best_creep = Some((creep_entity, creep_position, turret_position));
+            }
         }
     }
-    None
+    best_creep
 }
 
 pub fn move_follower_bullets(
