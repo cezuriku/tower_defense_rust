@@ -73,4 +73,6 @@ pub enum Strategy {
     Strongest,
     Slowest,
     Fastest,
+    Closest,
+    Furthest,
 }
