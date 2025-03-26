@@ -27,6 +27,4 @@ fn main() {
             .add_plugins(TowerDefenseGuiSimpleMap)
             .run();
     }
-
-    println!("{:?}", args);
 }

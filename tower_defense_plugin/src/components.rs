@@ -66,3 +66,11 @@ pub struct SlowDown {
     pub time_to_live: f32,
     pub strength: f32,
 }
+
+#[derive(Component)]
+pub enum Strategy {
+    Weakest,
+    Strongest,
+    Slowest,
+    Fastest,
+}

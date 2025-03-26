@@ -1,3 +1,5 @@
+use std::f32;
+
 use bevy::prelude::*;
 use bevy::{time::Time, transform::components::Transform};
 
@@ -191,18 +193,17 @@ pub fn spawn_creeps<T>(
 }
 
 macro_rules! shoot_one {
-    ($turrets: ident, $creeps: ident, $time: ident, $inner_function: expr) => {
-        for mut turret in $turrets.iter_mut() {
-            if time_to_fire(&mut turret, &$time) {
-                let turret_position = turret.transform.translation.truncate();
-                let mut ro_creeps = $creeps.transmute_lens::<(Entity, &Creep, &Transform)>();
-                if let Some((creep_entity, creep_position, _)) =
-                    find_one_creep_to_fire(turret_position, turret.range, &ro_creeps.query())
-                {
-                    $inner_function(creep_entity, creep_position, &turret);
+    ($turret: ident, $creeps: ident, $time: ident, $inner_function: expr) => {
+        if time_to_fire(&mut $turret, &$time) {
+            let turret_position = $turret.transform.translation.truncate();
+            let mut ro_creeps =
+                $creeps.transmute_lens::<(Entity, &Creep, &Transform, &MovingEntity)>();
+            if let Some((creep_entity, creep_position, _)) =
+                find_one_creep_to_fire(turret_position, $turret.range, &ro_creeps.query())
+            {
+                $inner_function(creep_entity, creep_position, turret_position);
 
-                    turret.last_fired = 0.0;
-                }
+                $turret.last_fired = 0.0;
             }
         }
     };
@@ -211,39 +212,42 @@ macro_rules! shoot_one {
 pub fn basic_turret_system(
     time: Res<Time>,
     mut turrets: Query<&mut Turret, With<BasicTurret>>,
-    mut creeps: Query<(Entity, &mut Creep, &Transform)>,
+    mut creeps: Query<(Entity, &mut Creep, &Transform, &MovingEntity)>,
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
-    shoot_one!(
-        turrets,
-        creeps,
-        time,
-        |creep_entity, creep_position, turret| {
-            if let Ok((_, mut creep, _)) = creeps.get_mut(creep_entity) {
-                shoot_creep(&mut fire_events, turret, &mut creep, creep_position);
+    for mut turret in turrets.iter_mut() {
+        shoot_one!(
+            turret,
+            creeps,
+            time,
+            |creep_entity, creep_position, _turret_entity| {
+                if let Ok((_, mut creep, _, _)) = creeps.get_mut(creep_entity) {
+                    shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
+                }
             }
-        }
-    );
+        );
+    }
 }
 
 pub fn slow_turret_system(
     time: Res<Time>,
     mut turrets: Query<&mut Turret, With<SlowTurret>>,
-    mut creeps: Query<(Entity, &Creep, &Transform), Without<SlowDown>>,
+    mut creeps: Query<(Entity, &Creep, &Transform, &MovingEntity), Without<SlowDown>>,
     mut commands: Commands,
 ) {
-    shoot_one!(
-        turrets,
-        creeps,
-        time,
-        |creep_entity, _creep_position, _turret| {
-            println!("Slow turret shooting creep {:?}", creep_entity);
-            commands.entity(creep_entity).insert_if_new(SlowDown {
-                time_to_live: 5.0,
-                strength: 5.0,
-            });
-        }
-    );
+    for mut turret in turrets.iter_mut() {
+        shoot_one!(
+            turret,
+            creeps,
+            time,
+            |creep_entity, _creep_position, _turret_entity| {
+                commands.entity(creep_entity).insert_if_new(SlowDown {
+                    time_to_live: 5.0,
+                    strength: 5.0,
+                });
+            }
+        );
+    }
 }
 
 pub fn bomb_turret_system(
@@ -283,18 +287,15 @@ fn shoot_creep(
 pub fn bullet_thrower_system(
     time: Res<Time>,
     mut turrets: Query<(&mut Turret, &BulletThrower)>,
-    creeps: Query<(Entity, &Creep, &Transform)>,
+    mut creeps: Query<(Entity, &Creep, &Transform, &MovingEntity)>,
     mut commands: Commands,
 ) {
     for (mut turret, bullet_thrower) in turrets.iter_mut() {
-        if time_to_fire(&mut turret, &time) {
-            let turret_position = turret.transform.translation.truncate();
-
-            if let Some((creep_entity, creep_position, turret_position)) =
-                find_one_creep_to_fire(turret_position, turret.range, &creeps)
-            {
-                turret.last_fired = 0.0;
-
+        shoot_one!(
+            turret,
+            creeps,
+            time,
+            |creep_entity, creep_position: Vec2, turret_position: Vec2| {
                 commands.spawn((
                     FollowerBullet {
                         damage: turret.damage,
@@ -306,7 +307,7 @@ pub fn bullet_thrower_system(
                     Transform::from_translation(turret.transform.translation),
                 ));
             }
-        }
+        );
     }
 }
 
@@ -322,9 +323,9 @@ fn time_to_fire(turret: &mut Turret, time: &Res<Time>) -> bool {
 fn find_one_creep_to_fire(
     turret_position: Vec2,
     turret_range: f32,
-    creeps: &Query<'_, '_, (Entity, &Creep, &Transform)>,
+    creeps: &Query<'_, '_, (Entity, &Creep, &Transform, &MovingEntity)>,
 ) -> Option<(Entity, Vec2, Vec2)> {
-    for (creep_entity, creep, creep_transform) in creeps.iter() {
+    for (creep_entity, creep, creep_transform, _) in creeps.iter() {
         let creep_position = creep_transform.translation.truncate();
         let distance = turret_position.distance(creep_position);
 
