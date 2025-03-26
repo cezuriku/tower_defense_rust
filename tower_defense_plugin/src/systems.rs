@@ -407,6 +407,18 @@ mod tests {
     use super::*;
     use bevy::time::TimeUpdateStrategy;
 
+    // tower_defense_plugin/src/systems.rs
+
+    fn iterate_and_get_creep_transform(app: &mut App) -> Vec2 {
+        app.update();
+
+        let world = app.world_mut();
+        let mut query = world.query::<(&MovingEntity, &Transform)>();
+        let (_creep, transform) = query.single(world);
+
+        transform.translation.truncate()
+    }
+
     #[test]
     fn test_move_creeps() {
         let mut app = App::new();
@@ -428,22 +440,13 @@ mod tests {
             Transform::from_translation(Vec3::new(15.0, 15.0, 0.0)),
         ));
 
-        app.update();
+        let transform = iterate_and_get_creep_transform(&mut app);
+        assert_eq!(transform, Vec2::new(15.0, 15.0)); // No movement since delta time is 0
 
-        let world = app.world_mut();
-        let mut query = world.query::<(&MovingEntity, &Transform)>();
-        let (_creep, transform) = query.single(world);
-
-        assert_eq!(transform.translation.truncate(), Vec2::new(15.0, 15.0)); // No movement since delta time is 0
-
-        app.update();
-
-        let world = app.world_mut();
-        let mut query = world.query::<(&MovingEntity, &Transform)>();
-        let (_creep, transform) = query.single(world);
+        let transform = iterate_and_get_creep_transform(&mut app);
 
         // Update the expected position based on the movement logic in `move_creeps`
         let expected_pos = Vec2::new(15.0, 15.0).move_towards(next_waypoint, fixed_delta * speed);
-        assert_eq!(transform.translation.truncate(), expected_pos); // Check if the position has updated correctly
+        assert_eq!(transform, expected_pos); // Check if the position has updated correctly
     }
 }
