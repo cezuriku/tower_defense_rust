@@ -3,7 +3,9 @@ use std::f32;
 use bevy::prelude::*;
 use bevy::{time::Time, transform::components::Transform};
 
+use crate::creep_tuple::CreepTuple;
 use crate::resources::*;
+use crate::top_n::TopN;
 use crate::utils::world_to_grid;
 use crate::{DynamicMap, events::*};
 use crate::{Map, components::*};
@@ -192,19 +194,24 @@ pub fn spawn_creeps<T>(
     }
 }
 
-macro_rules! shoot_one {
-    ($turret: ident, $creeps: ident, $time: ident, $strategy: ident, $inner_function: expr) => {
+macro_rules! shoot_n_creeps {
+    ($turret: ident, $creeps: ident, $time: ident, $strategy: ident, $n_creeps: literal, $inner_function: expr) => {
         if time_to_fire(&mut $turret, &$time) {
             let turret_position = $turret.transform.translation.truncate();
             let mut ro_creeps =
                 $creeps.transmute_lens::<(Entity, &Creep, &Transform, &MovingEntity)>();
-            if let Some((creep_entity, creep_position, _)) = find_top_creep_within_range(
+            let n_creeps = find_top_creeps_within_range(
                 turret_position,
                 $turret.range,
                 &ro_creeps.query(),
                 $strategy,
-            ) {
-                $inner_function(creep_entity, creep_position, turret_position);
+                $n_creeps,
+            );
+
+            if !n_creeps.is_empty() {
+                for (creep_entity, creep_position, turret_position) in n_creeps {
+                    $inner_function(creep_entity, creep_position, turret_position);
+                }
 
                 $turret.last_fired = 0.0;
             }
@@ -219,11 +226,12 @@ pub fn basic_turret_system(
     mut fire_events: EventWriter<BasicFireEvent>,
 ) {
     for (mut turret, strategy) in turrets.iter_mut() {
-        shoot_one!(
+        shoot_n_creeps!(
             turret,
             creeps,
             time,
             strategy,
+            1,
             |creep_entity, creep_position, _turret_entity| {
                 if let Ok((_, mut creep, _, _)) = creeps.get_mut(creep_entity) {
                     shoot_creep(&mut fire_events, &turret, &mut creep, creep_position);
@@ -240,11 +248,12 @@ pub fn slow_turret_system(
     mut commands: Commands,
 ) {
     for (mut turret, strategy) in turrets.iter_mut() {
-        shoot_one!(
+        shoot_n_creeps!(
             turret,
             creeps,
             time,
             strategy,
+            1,
             |creep_entity, _creep_position, _turret_entity| {
                 commands.entity(creep_entity).insert_if_new(SlowDown {
                     time_to_live: 5.0,
@@ -296,11 +305,12 @@ pub fn bullet_thrower_system(
     mut commands: Commands,
 ) {
     for (mut turret, bullet_thrower, strategy) in turrets.iter_mut() {
-        shoot_one!(
+        shoot_n_creeps!(
             turret,
             creeps,
             time,
             strategy,
+            2,
             |creep_entity, creep_position: Vec2, turret_position: Vec2| {
                 commands.spawn((
                     FollowerBullet {
@@ -326,24 +336,17 @@ fn time_to_fire(turret: &mut Turret, time: &Res<Time>) -> bool {
     false
 }
 
-fn find_top_creep_within_range(
+fn find_top_creeps_within_range(
     turret_position: Vec2,
     turret_range: f32,
     creeps: &Query<'_, '_, (Entity, &Creep, &Transform, &MovingEntity)>,
     strategy: Option<&Strategy>,
-) -> Option<(Entity, Vec2, Vec2)> {
-    let mut best_creep: Option<(Entity, Vec2, Vec2)> = None;
+    n: usize,
+) -> Vec<(Entity, Vec2, Vec2)> {
+    let mut best_creeps: TopN<CreepTuple> = TopN::new(n);
     let strategy = match strategy {
         Some(strategy) => strategy,
         None => &Strategy::Closest,
-    };
-    let mut best_value: f32 = match strategy {
-        Strategy::Weakest => f32::MAX,
-        Strategy::Strongest => f32::MIN,
-        Strategy::Slowest => f32::MAX,
-        Strategy::Fastest => f32::MIN,
-        Strategy::Closest => f32::MAX,
-        Strategy::Furthest => f32::MIN,
     };
 
     for (creep_entity, creep, creep_transform, moving_entity) in creeps.iter() {
@@ -351,22 +354,26 @@ fn find_top_creep_within_range(
         let distance = turret_position.distance(creep_position);
 
         if distance <= turret_range {
-            let (value, should_update) = match strategy {
-                Strategy::Weakest => (creep.health, creep.health < best_value),
-                Strategy::Strongest => (creep.health, creep.health > best_value),
-                Strategy::Slowest => (moving_entity.speed, moving_entity.speed < best_value),
-                Strategy::Fastest => (moving_entity.speed, moving_entity.speed > best_value),
-                Strategy::Closest => (distance, distance < best_value),
-                Strategy::Furthest => (distance, distance > best_value),
+            let value = match strategy {
+                Strategy::Weakest => -creep.health,
+                Strategy::Strongest => creep.health,
+                Strategy::Slowest => -moving_entity.speed,
+                Strategy::Fastest => moving_entity.speed,
+                Strategy::Closest => -distance,
+                Strategy::Furthest => distance,
             };
 
-            if should_update {
-                best_value = value;
-                best_creep = Some((creep_entity, creep_position, turret_position));
-            }
+            best_creeps.insert(CreepTuple {
+                creep: (creep_entity, creep_position, turret_position),
+                value,
+            });
         }
     }
-    best_creep
+    best_creeps
+        .get()
+        .iter()
+        .map(|creep_tuple| creep_tuple.creep)
+        .collect()
 }
 
 pub fn move_follower_bullets(
