@@ -15,6 +15,12 @@ fn main() {
                 .add_plugins(TowerDefensePlugin)
                 .add_plugins(TowerDefenseGui)
                 .run();
+        } else if args[1].as_str() == "server" {
+            println!("Running Server mode");
+            App::new()
+                .add_plugins(MinimalPlugins)
+                .add_plugins(TowerDefensePluginSimpleMap)
+                .run();
         } else {
             println!("Unrecognized argument {:?}", args[1].as_str());
             println!("Valid arguments are: freemap");

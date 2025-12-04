@@ -39,7 +39,7 @@ pub fn setup<T>(
     commands.spawn((
         Camera2d,
         MainCamera,
-        OrthographicProjection {
+        Projection::from(OrthographicProjection {
             near: -1000.0,
             far: 1000.0,
             scale: 1.0,
@@ -49,7 +49,7 @@ pub fn setup<T>(
                 min_width: 110.0,
                 min_height: 110.0,
             },
-        },
+        }),
     ));
     commands.spawn((
         Transform::from_xyz(-45.0, -45.0, 10.0),
@@ -170,28 +170,32 @@ pub fn mouse_input(
     }
 
     if let Some(turret_type) = turret_type {
-        let (camera, camera_transform) = q_camera.single();
-        if let Some(cursor) = q_windows.single().cursor_position() {
-            if let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor) {
-                let map_anchor = map_anchor_query.single();
-                let grid_origin = map_anchor.translation.truncate();
+        if let Ok((camera, camera_transform)) = q_camera.single() {
+            if let Ok(window) = q_windows.single() {
+                if let Some(cursor) = window.cursor_position() {
+                    if let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor) {
+                        if let Ok(map_anchor) = map_anchor_query.single() {
+                            let grid_origin = map_anchor.translation.truncate();
 
-                println!(
-                    "position: {:?}",
-                    position - grid_origin + Vec2::new(2.5, 2.5)
-                );
+                            println!(
+                                "position: {:?}",
+                                position - grid_origin + Vec2::new(2.5, 2.5)
+                            );
 
-                let pos = IVec2 {
-                    x: ((position.x - grid_origin.x + 5.0) / 10.0) as i32,
-                    y: ((position.y - grid_origin.y + 5.0) / 10.0) as i32,
-                };
+                            let pos = IVec2 {
+                                x: ((position.x - grid_origin.x + 5.0) / 10.0) as i32,
+                                y: ((position.y - grid_origin.y + 5.0) / 10.0) as i32,
+                            };
 
-                println!("placing turret at {:?}", pos);
+                            println!("placing turret at {:?}", pos);
 
-                turret_events.send(PlaceTurretEvent {
-                    turret_type,
-                    position: pos,
-                });
+                            turret_events.send(PlaceTurretEvent {
+                                turret_type,
+                                position: pos,
+                            });
+                        }
+                    }
+                }
             }
         }
     }
@@ -203,40 +207,41 @@ pub fn new_turrets(
     mut events: EventReader<NewTurretEvent>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
 ) {
-    let map_anchor = map_anchor_query.single();
-    let grid_origin = map_anchor.translation.truncate();
+    if let Ok(map_anchor) = map_anchor_query.single() {
+        let grid_origin = map_anchor.translation.truncate();
 
-    for event in events.read() {
-        let turret_id = commands
-            .spawn((
-                Mesh2d(tower_assets.mesh.clone()),
-                Transform::from_xyz(
-                    (event.position.x as f32) * 10.0 + grid_origin.x,
-                    (event.position.y as f32) * 10.0 + grid_origin.y,
-                    50.0,
-                ),
-            ))
-            .id();
-        match event.turret_type {
-            TurretType::Basic => {
-                commands
-                    .entity(turret_id)
-                    .insert(MeshMaterial2d(tower_assets.material.clone()));
-            }
-            TurretType::Bomb => {
-                commands
-                    .entity(turret_id)
-                    .insert(MeshMaterial2d(tower_assets.bomb_material.clone()));
-            }
-            TurretType::Follower => {
-                commands
-                    .entity(turret_id)
-                    .insert(MeshMaterial2d(tower_assets.follower_material.clone()));
-            }
-            TurretType::Slow => {
-                commands
-                    .entity(turret_id)
-                    .insert(MeshMaterial2d(tower_assets.slow_material.clone()));
+        for event in events.read() {
+            let turret_id = commands
+                .spawn((
+                    Mesh2d(tower_assets.mesh.clone()),
+                    Transform::from_xyz(
+                        (event.position.x as f32) * 10.0 + grid_origin.x,
+                        (event.position.y as f32) * 10.0 + grid_origin.y,
+                        50.0,
+                    ),
+                ))
+                .id();
+            match event.turret_type {
+                TurretType::Basic => {
+                    commands
+                        .entity(turret_id)
+                        .insert(MeshMaterial2d(tower_assets.material.clone()));
+                }
+                TurretType::Bomb => {
+                    commands
+                        .entity(turret_id)
+                        .insert(MeshMaterial2d(tower_assets.bomb_material.clone()));
+                }
+                TurretType::Follower => {
+                    commands
+                        .entity(turret_id)
+                        .insert(MeshMaterial2d(tower_assets.follower_material.clone()));
+                }
+                TurretType::Slow => {
+                    commands
+                        .entity(turret_id)
+                        .insert(MeshMaterial2d(tower_assets.slow_material.clone()));
+                }
             }
         }
     }
@@ -252,17 +257,18 @@ pub fn update_path(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     if events.read().len() != 0 {
-        let map_anchor = map_anchor_query.single();
-        let grid_origin = map_anchor.translation.truncate();
-        q_path.iter().for_each(|e| commands.entity(e).despawn());
-        draw_path::<FreeMap>(
-            &mut commands,
-            &path_assets.mesh,
-            &path_assets.material,
-            &map,
-            grid_origin,
-            &mut meshes,
-        );
+        if let Ok(map_anchor) = map_anchor_query.single() {
+            let grid_origin = map_anchor.translation.truncate();
+            q_path.iter().for_each(|e| commands.entity(e).despawn());
+            draw_path::<FreeMap>(
+                &mut commands,
+                &path_assets.mesh,
+                &path_assets.material,
+                &map,
+                grid_origin,
+                &mut meshes,
+            );
+        }
     }
 }
 
@@ -321,32 +327,33 @@ pub fn handle_new_creep(
     map_anchor_query: Query<(Entity, &MapAnchor)>,
     creep_assets: Res<CreepAssets>,
 ) {
-    let (anchor, _) = map_anchor_query.single();
-    for (creep, _) in &mut query {
-        commands.entity(anchor).add_child(creep);
-        commands
-            .entity(creep)
-            .insert_if_new(creep_assets.creep_sprite.clone());
+    if let Ok((anchor, _)) = map_anchor_query.single() {
+        for (creep, _) in &mut query {
+            commands.entity(anchor).add_child(creep);
+            commands
+                .entity(creep)
+                .insert_if_new(creep_assets.creep_sprite.clone());
 
-        let health_bar = commands
-            .spawn((
-                creep_assets.health_bar_back_sprite.clone(),
-                Transform::from_xyz(0.0, 0.0, 1.0),
-            ))
-            .id();
-        commands.entity(creep).add_child(health_bar);
+            let health_bar = commands
+                .spawn((
+                    creep_assets.health_bar_back_sprite.clone(),
+                    Transform::from_xyz(0.0, 0.0, 1.0),
+                ))
+                .id();
+            commands.entity(creep).add_child(health_bar);
 
-        let inner_health_bar = commands
-            .spawn((
-                Sprite {
-                    anchor: Anchor::TopCenter,
-                    ..creep_assets.health_bar_front_sprite.clone()
-                },
-                Transform::from_xyz(0.0, 4.0, 2.0),
-                HealthBar {},
-            ))
-            .id();
-        commands.entity(creep).add_child(inner_health_bar);
+            let inner_health_bar = commands
+                .spawn((
+                    Sprite {
+                        anchor: Anchor::TopCenter,
+                        ..creep_assets.health_bar_front_sprite.clone()
+                    },
+                    Transform::from_xyz(0.0, 4.0, 2.0),
+                    HealthBar {},
+                ))
+                .id();
+            commands.entity(creep).add_child(inner_health_bar);
+        }
     }
 }
 
@@ -356,20 +363,20 @@ pub fn handle_new_bullets(
     map_anchor_query: Query<(Entity, &MapAnchor)>,
     bullet_assets: Res<BulletAssets>,
 ) {
-    let (anchor, _) = map_anchor_query.single();
-
-    for entity in &mut query {
-        commands.entity(entity).insert_if_new((
-            Mesh2d(bullet_assets.mesh.clone()),
-            MeshMaterial2d(bullet_assets.material.clone()),
-        ));
-        commands.entity(entity).set_parent(anchor);
+    if let Ok((anchor, _)) = map_anchor_query.single() {
+        for entity in &mut query {
+            commands.entity(entity).insert_if_new((
+                Mesh2d(bullet_assets.mesh.clone()),
+                MeshMaterial2d(bullet_assets.material.clone()),
+            ));
+            commands.entity(entity).set_parent(anchor);
+        }
     }
 }
 
 pub fn despawn_dead_bullets(mut commands: Commands, query: Query<(Entity, &FollowerBullet)>) {
     for (entity, bullet) in &query {
-        if commands.get_entity(bullet.target).is_none() {
+        if commands.get_entity(bullet.target).is_err() {
             commands.entity(entity).despawn();
         }
     }
@@ -380,7 +387,7 @@ pub fn health_bar_system(
     mut q_health_bar: Query<&mut Sprite, With<HealthBar>>,
 ) {
     for (creep, children) in &q_creep {
-        for &child in children.iter() {
+        for &child in children.into_iter() {
             if let Ok(mut sprite) = q_health_bar.get_mut(child) {
                 sprite.custom_size = Some(Vec2::new(1.5, creep.health / creep.max_health * 8.0));
             }
@@ -394,16 +401,17 @@ pub fn handle_fire_event(
     tower_assets: Res<TowerAssets>,
     map_anchor_query: Query<(Entity, &MapAnchor)>,
 ) {
-    let (anchor, _) = map_anchor_query.single();
-    for event in fire_events.read() {
-        let direction = (event.target - grid_to_world(event.origin)).normalize();
-        let angle = direction.y.atan2(direction.x);
+    if let Ok((anchor, _)) = map_anchor_query.single() {
+        for event in fire_events.read() {
+            let direction = (event.target - grid_to_world(event.origin)).normalize();
+            let angle = direction.y.atan2(direction.x);
 
-        let fire = create_fire_entity(&mut commands, &tower_assets, event.origin, angle);
-        let smoke = create_smoke_entity(&mut commands, &tower_assets, event.target);
+            let fire = create_fire_entity(&mut commands, &tower_assets, event.origin, angle);
+            let smoke = create_smoke_entity(&mut commands, &tower_assets, event.target);
 
-        commands.entity(anchor).add_child(fire);
-        commands.entity(anchor).add_child(smoke);
+            commands.entity(anchor).add_child(fire);
+            commands.entity(anchor).add_child(smoke);
+        }
     }
 }
 

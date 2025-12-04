@@ -445,7 +445,7 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use bevy::time::TimeUpdateStrategy;
+    use bevy::{math::VectorSpace, time::TimeUpdateStrategy};
 
     // tower_defense_plugin/src/systems.rs
 
@@ -454,9 +454,11 @@ mod tests {
 
         let world = app.world_mut();
         let mut query = world.query::<(&MovingEntity, &Transform)>();
-        let (_creep, transform) = query.single(world);
-
-        transform.translation.truncate()
+        if let Ok((_creep, transform)) = query.single(world) {
+            transform.translation.truncate()
+        } else {
+            Vec2::ZERO
+        }
     }
 
     #[test]
