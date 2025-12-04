@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
 
 #[derive(Component)]
 pub struct Path {}
@@ -22,6 +22,7 @@ pub struct FireBundle {
     pub fire: Fire,
     pub sprite: Sprite,
     pub transform: Transform,
+    pub anchor: Anchor,
 }
 
 #[derive(Component)]

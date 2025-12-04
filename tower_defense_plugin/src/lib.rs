@@ -80,8 +80,8 @@ fn insert_common_resources(app: &mut App) {
 }
 
 fn insert_common_events(app: &mut App) {
-    app.add_event::<events::PlaceTurretEvent>()
-        .add_event::<events::NewTurretEvent>()
-        .add_event::<events::BasicFireEvent>()
-        .add_event::<events::MapChangedEvent>();
+    app.add_message::<events::PlaceTurretMessage>()
+        .add_message::<events::NewTurretMessage>()
+        .add_message::<events::BasicFireMessage>()
+        .add_message::<events::MapChangedMessage>();
 }

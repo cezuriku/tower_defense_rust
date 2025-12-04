@@ -1,20 +1,20 @@
 use crate::components::*;
 use crate::resources::*;
 use bevy::asset::RenderAssetUsages;
+use bevy::camera::ScalingMode;
 use bevy::math::vec2;
-use bevy::render::camera::ScalingMode;
-use bevy::render::mesh::PrimitiveTopology;
 use bevy::sprite::Anchor;
 use bevy::window::PrimaryWindow;
-use bevy::{core_pipeline::core_2d::Camera2d, ecs::system::*, prelude::*};
+use bevy::{camera::Camera2d, ecs::system::*, prelude::*};
 use tower_defense_plugin::components::Creep;
 use tower_defense_plugin::components::FollowerBullet;
 use tower_defense_plugin::components::TurretType;
-use tower_defense_plugin::events::BasicFireEvent;
-use tower_defense_plugin::events::MapChangedEvent;
-use tower_defense_plugin::events::NewTurretEvent;
-use tower_defense_plugin::events::PlaceTurretEvent;
+use tower_defense_plugin::events::BasicFireMessage;
+use tower_defense_plugin::events::MapChangedMessage;
+use tower_defense_plugin::events::NewTurretMessage;
+use tower_defense_plugin::events::PlaceTurretMessage;
 use tower_defense_plugin::*;
+use wgpu_types::PrimitiveTopology;
 
 pub fn setup<T>(
     mut commands: Commands,
@@ -158,7 +158,7 @@ pub fn mouse_input(
     q_windows: Query<&Window, With<PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
-    mut turret_events: EventWriter<PlaceTurretEvent>,
+    mut turret_events: MessageWriter<PlaceTurretMessage>,
 ) {
     let mut turret_type: Option<TurretType> = None;
     if buttons.just_pressed(MouseButton::Left) {
@@ -169,42 +169,38 @@ pub fn mouse_input(
         turret_type = Some(TurretType::Bomb);
     }
 
-    if let Some(turret_type) = turret_type {
-        if let Ok((camera, camera_transform)) = q_camera.single() {
-            if let Ok(window) = q_windows.single() {
-                if let Some(cursor) = window.cursor_position() {
-                    if let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor) {
-                        if let Ok(map_anchor) = map_anchor_query.single() {
-                            let grid_origin = map_anchor.translation.truncate();
+    if let Some(turret_type) = turret_type
+        && let Ok((camera, camera_transform)) = q_camera.single()
+        && let Ok(window) = q_windows.single()
+        && let Some(cursor) = window.cursor_position()
+        && let Ok(position) = camera.viewport_to_world_2d(camera_transform, cursor)
+        && let Ok(map_anchor) = map_anchor_query.single()
+    {
+        let grid_origin = map_anchor.translation.truncate();
 
-                            println!(
-                                "position: {:?}",
-                                position - grid_origin + Vec2::new(2.5, 2.5)
-                            );
+        println!(
+            "position: {:?}",
+            position - grid_origin + Vec2::new(2.5, 2.5)
+        );
 
-                            let pos = IVec2 {
-                                x: ((position.x - grid_origin.x + 5.0) / 10.0) as i32,
-                                y: ((position.y - grid_origin.y + 5.0) / 10.0) as i32,
-                            };
+        let pos = IVec2 {
+            x: ((position.x - grid_origin.x + 5.0) / 10.0) as i32,
+            y: ((position.y - grid_origin.y + 5.0) / 10.0) as i32,
+        };
 
-                            println!("placing turret at {:?}", pos);
+        println!("placing turret at {:?}", pos);
 
-                            turret_events.send(PlaceTurretEvent {
-                                turret_type,
-                                position: pos,
-                            });
-                        }
-                    }
-                }
-            }
-        }
+        turret_events.write(PlaceTurretMessage {
+            turret_type,
+            position: pos,
+        });
     }
 }
 
 pub fn new_turrets(
     mut commands: Commands,
     tower_assets: Res<TowerAssets>,
-    mut events: EventReader<NewTurretEvent>,
+    mut events: MessageReader<NewTurretMessage>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
 ) {
     if let Ok(map_anchor) = map_anchor_query.single() {
@@ -253,22 +249,22 @@ pub fn update_path(
     path_assets: Res<PathAssets>,
     map: Res<FreeMap>,
     map_anchor_query: Query<&Transform, With<MapAnchor>>,
-    mut events: EventReader<MapChangedEvent>,
+    mut events: MessageReader<MapChangedMessage>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    if events.read().len() != 0 {
-        if let Ok(map_anchor) = map_anchor_query.single() {
-            let grid_origin = map_anchor.translation.truncate();
-            q_path.iter().for_each(|e| commands.entity(e).despawn());
-            draw_path::<FreeMap>(
-                &mut commands,
-                &path_assets.mesh,
-                &path_assets.material,
-                &map,
-                grid_origin,
-                &mut meshes,
-            );
-        }
+    if events.read().len() != 0
+        && let Ok(map_anchor) = map_anchor_query.single()
+    {
+        let grid_origin = map_anchor.translation.truncate();
+        q_path.iter().for_each(|e| commands.entity(e).despawn());
+        draw_path::<FreeMap>(
+            &mut commands,
+            &path_assets.mesh,
+            &path_assets.material,
+            &map,
+            grid_origin,
+            &mut meshes,
+        );
     }
 }
 
@@ -316,7 +312,7 @@ pub fn draw_path<T>(
     commands.spawn((
         Mesh2d(mesh_handle.clone()),
         MeshMaterial2d(material.clone()),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Transform::from_xyz(0.0, 0.0, 1.0),
         Path {},
     ));
 }
@@ -344,10 +340,8 @@ pub fn handle_new_creep(
 
             let inner_health_bar = commands
                 .spawn((
-                    Sprite {
-                        anchor: Anchor::TopCenter,
-                        ..creep_assets.health_bar_front_sprite.clone()
-                    },
+                    creep_assets.health_bar_front_sprite.clone(),
+                    Anchor::TOP_CENTER,
                     Transform::from_xyz(0.0, 4.0, 2.0),
                     HealthBar {},
                 ))
@@ -369,7 +363,7 @@ pub fn handle_new_bullets(
                 Mesh2d(bullet_assets.mesh.clone()),
                 MeshMaterial2d(bullet_assets.material.clone()),
             ));
-            commands.entity(entity).set_parent(anchor);
+            commands.entity(entity).insert(ChildOf(anchor));
         }
     }
 }
@@ -397,7 +391,7 @@ pub fn health_bar_system(
 
 pub fn handle_fire_event(
     mut commands: Commands,
-    mut fire_events: EventReader<BasicFireEvent>,
+    mut fire_events: MessageReader<BasicFireMessage>,
     tower_assets: Res<TowerAssets>,
     map_anchor_query: Query<(Entity, &MapAnchor)>,
 ) {
@@ -421,23 +415,22 @@ fn create_fire_entity(
     origin: IVec2,
     angle: f32,
 ) -> Entity {
-    let fire = commands
+    commands
         .spawn(FireBundle {
             fire: Fire { time_left: 0.1 },
             sprite: Sprite {
                 image: tower_assets.fire_image.clone(),
                 custom_size: Some(Vec2::new(3.5, 1.5)),
-                anchor: Anchor::CenterLeft,
                 ..Default::default()
             },
+            anchor: Anchor::CENTER_LEFT,
             transform: Transform {
                 translation: grid_to_world(origin).extend(100.0),
                 rotation: Quat::from_rotation_z(angle),
                 ..Default::default()
             },
         })
-        .id();
-    fire
+        .id()
 }
 
 fn create_smoke_entity(
@@ -450,7 +443,7 @@ fn create_smoke_entity(
         last: 66 + 10,
     };
 
-    let smoke = commands
+    commands
         .spawn((
             Sprite {
                 custom_size: Some(Vec2::new(8.0, 8.0)),
@@ -469,8 +462,7 @@ fn create_smoke_entity(
             animation_indices,
             AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         ))
-        .id();
-    smoke
+        .id()
 }
 
 pub fn update_fire(mut commands: Commands, mut query: Query<(Entity, &mut Fire)>, time: Res<Time>) {

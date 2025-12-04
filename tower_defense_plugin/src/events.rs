@@ -2,23 +2,23 @@ use bevy::prelude::*;
 
 use crate::components::*;
 
-#[derive(Event)]
-pub struct PlaceTurretEvent {
+#[derive(Message)]
+pub struct PlaceTurretMessage {
     pub turret_type: TurretType,
     pub position: IVec2,
 }
 
-#[derive(Event)]
-pub struct NewTurretEvent {
+#[derive(Message)]
+pub struct NewTurretMessage {
     pub turret_type: TurretType,
     pub position: IVec2,
 }
 
-#[derive(Event)]
-pub struct MapChangedEvent;
+#[derive(Message)]
+pub struct MapChangedMessage;
 
-#[derive(Event)]
-pub struct BasicFireEvent {
+#[derive(Message)]
+pub struct BasicFireMessage {
     pub origin: IVec2,
     pub target: Vec2,
 }

@@ -41,7 +41,7 @@ pub fn move_creeps(
 }
 
 pub fn update_creep_paths<T: Resource + DynamicMap>(
-    mut events: EventReader<MapChangedEvent>,
+    mut events: MessageReader<MapChangedMessage>,
     mut creeps: Query<(&Transform, &mut MovingEntity), With<Creep>>,
     map: Res<T>,
 ) {
@@ -66,11 +66,11 @@ pub fn update_creep_paths<T: Resource + DynamicMap>(
 
 pub fn handle_turret_placement<T>(
     mut commands: Commands,
-    mut events: EventReader<PlaceTurretEvent>,
+    mut events: MessageReader<PlaceTurretMessage>,
     mut game_data: ResMut<GameData>,
     mut map: ResMut<T>,
-    mut new_turret_writer: EventWriter<NewTurretEvent>,
-    mut map_changed_writer: EventWriter<MapChangedEvent>,
+    mut new_turret_writer: MessageWriter<NewTurretMessage>,
+    mut map_changed_writer: MessageWriter<MapChangedMessage>,
 ) where
     T: Resource + Map,
 {
@@ -90,12 +90,12 @@ pub fn handle_turret_placement<T>(
             create_turret(&mut commands, &mut map, event, range, reload_time);
 
             // Notify other systems that a new turret has been placed (e.g., for UI updates)
-            new_turret_writer.send(NewTurretEvent {
+            new_turret_writer.write(NewTurretMessage {
                 turret_type: event.turret_type,
                 position: event.position,
             });
 
-            map_changed_writer.send(MapChangedEvent {});
+            map_changed_writer.write(MapChangedMessage {});
 
             println!("Turret placed successfully!");
         } else {
@@ -107,7 +107,7 @@ pub fn handle_turret_placement<T>(
 fn create_turret<T>(
     commands: &mut Commands,
     map: &mut ResMut<T>,
-    event: &PlaceTurretEvent,
+    event: &PlaceTurretMessage,
     range: f32,
     reload_time: f32,
 ) where
@@ -223,7 +223,7 @@ pub fn basic_turret_system(
     time: Res<Time>,
     mut turrets: Query<(&mut Turret, Option<&Strategy>), With<BasicTurret>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform, &MovingEntity)>,
-    mut fire_events: EventWriter<BasicFireEvent>,
+    mut fire_events: MessageWriter<BasicFireMessage>,
 ) {
     for (mut turret, strategy) in turrets.iter_mut() {
         shoot_n_creeps!(
@@ -268,7 +268,7 @@ pub fn bomb_turret_system(
     time: Res<Time>,
     mut turrets: Query<&mut Turret, With<BombTurret>>,
     mut creeps: Query<(Entity, &mut Creep, &Transform)>,
-    mut fire_events: EventWriter<BasicFireEvent>,
+    mut fire_events: MessageWriter<BasicFireMessage>,
 ) {
     for mut turret in turrets.iter_mut() {
         if time_to_fire(&mut turret, &time) {
@@ -285,14 +285,14 @@ pub fn bomb_turret_system(
 }
 
 fn shoot_creep(
-    fire_events: &mut EventWriter<BasicFireEvent>,
+    fire_events: &mut MessageWriter<BasicFireMessage>,
     turret: &Turret,
     creep: &mut Creep,
     creep_position: Vec2,
 ) {
     creep.health -= turret.damage;
 
-    fire_events.send(BasicFireEvent {
+    fire_events.write(BasicFireMessage {
         origin: turret.position,
         target: creep_position,
     });
@@ -422,7 +422,8 @@ pub fn move_follower_bullets(
 pub fn despawn_dead_creeps(mut commands: Commands, mut creeps: Query<(Entity, &Creep)>) {
     for (entity, creep) in creeps.iter_mut() {
         if creep.health <= 0.0 {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn_children();
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -445,7 +446,7 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use bevy::{math::VectorSpace, time::TimeUpdateStrategy};
+    use bevy::time::TimeUpdateStrategy;
 
     // tower_defense_plugin/src/systems.rs
 
