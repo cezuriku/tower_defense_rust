@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package protos.messages;
+
+message ServerMessage {
+  oneof message {
+    DebugMessage debug_message = 1;
+  }
+}
+
+message ClientMessage {
+  oneof message {
+    DebugMessage debug_message = 1;
+  }
+}
+
+message DebugMessage { string content = 1; }
