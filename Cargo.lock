@@ -2372,6 +2372,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "gdextension-api"
+version = "0.3.0"
+source = "git+https://github.com/godot-rust/godot4-prebuilt?branch=release-v0.3#f70baca72747869aaac7781a0cf139f53a2aac19"
+
+[[package]]
 name = "gethostname"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2513,6 +2518,75 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c4ee00b289aba7a9e5306d57c2d05499b2e5dc427f84ac708bd2c090212cf3e"
 dependencies = [
  "gl_generator",
+]
+
+[[package]]
+name = "godot"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "godot-core",
+ "godot-macros",
+]
+
+[[package]]
+name = "godot-bindings"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "gdextension-api",
+]
+
+[[package]]
+name = "godot-cell"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+
+[[package]]
+name = "godot-codegen"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "godot-bindings",
+ "heck",
+ "nanoserde",
+ "proc-macro2",
+ "quote",
+ "regex",
+]
+
+[[package]]
+name = "godot-core"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "glam",
+ "godot-bindings",
+ "godot-cell",
+ "godot-codegen",
+ "godot-ffi",
+]
+
+[[package]]
+name = "godot-ffi"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "godot-bindings",
+ "godot-codegen",
+ "godot-macros",
+ "libc",
+]
+
+[[package]]
+name = "godot-macros"
+version = "0.4.4"
+source = "git+https://github.com/godot-rust/gdext?branch=master#f67835d766b71d3875b1de04017aa6611f5bdd3f"
+dependencies = [
+ "godot-bindings",
+ "proc-macro2",
+ "quote",
+ "venial",
 ]
 
 [[package]]
@@ -3059,6 +3133,21 @@ dependencies = [
  "tracing",
  "unicode-ident",
 ]
+
+[[package]]
+name = "nanoserde"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a36fb3a748a4c9736ed7aeb5f2dfc99665247f1ce306abbddb2bf0ba2ac530a4"
+dependencies = [
+ "nanoserde-derive",
+]
+
+[[package]]
+name = "nanoserde-derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a846cbc04412cf509efcd8f3694b114fc700a035fb5a37f21517f9fb019f1ebc"
 
 [[package]]
 name = "ndk"
@@ -3993,6 +4082,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
+name = "rust_td_lib"
+version = "0.1.0"
+dependencies = [
+ "godot",
+ "protos",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4748,6 +4845,16 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
+
+[[package]]
+name = "venial"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a42528baceab6c7784446df2a10f4185078c39bf73dc614f154353f1a6b1229"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "version_check"

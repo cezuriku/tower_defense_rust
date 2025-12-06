@@ -1,3 +1,3 @@
 [workspace]
-members = ["protos","tower_defense", "tower_defense_gui", "tower_defense_plugin"]
+members = ["godot_lib","protos","tower_defense", "tower_defense_gui", "tower_defense_plugin"]
 resolver = "2"

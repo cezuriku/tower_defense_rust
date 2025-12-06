@@ -16,8 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install alsa and libudev libraries
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev pkg-config
+      - name: Install libraries
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev pkg-config protobuf-compiler
 
       - name: Set up Rust
         uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
@@ -38,8 +38,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install alsa and libudev libraries
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev pkg-config
+      - name: Install libraries
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev pkg-config protobuf-compiler
 
       - name: Set up Rust
         uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
