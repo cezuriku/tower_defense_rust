@@ -7,5 +7,6 @@ edition = "2024"
 crate-type = ["cdylib"] # Compile this crate to a dynamic C library.
 
 [dependencies]
+bevy_renet = "3.0.0"
 godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
 protos = { version = "0.1.0", path = "../protos" }
