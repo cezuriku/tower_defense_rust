@@ -3,6 +3,7 @@ use std::env;
 use bevy::{app::*, *};
 use tower_defense_gui::{TowerDefenseGui, TowerDefenseGuiSimpleMap};
 use tower_defense_plugin::{TowerDefensePlugin, TowerDefensePluginSimpleMap};
+use tower_defense_server::ServerPlugin;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,6 +21,7 @@ fn main() {
             App::new()
                 .add_plugins(MinimalPlugins)
                 .add_plugins(TowerDefensePluginSimpleMap)
+                .add_plugins(ServerPlugin)
                 .run();
         } else {
             println!("Unrecognized argument {:?}", args[1].as_str());

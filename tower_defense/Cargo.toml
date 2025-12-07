@@ -7,6 +7,7 @@ edition = "2021"
 bevy = { version = "0.17", features = ["dynamic_linking"] }
 tower_defense_plugin = { version = "0.1.0", path = "../tower_defense_plugin" }
 tower_defense_gui = { version = "0.1.0", path = "../tower_defense_gui" }
+tower_defense_server = { version = "0.1.0", path = "../tower_defense_server" }
 
 # Enable max optimizations for dependencies, but not for our code:
 [profile.dev.package."*"]
