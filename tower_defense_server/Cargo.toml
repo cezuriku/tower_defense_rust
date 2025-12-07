@@ -1,0 +1,9 @@
+[package]
+name = "tower_defense_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = "0.17.3"
+bevy_renet = "3.0.0"
+protos = { version = "0.1.0", path = "../protos" }
